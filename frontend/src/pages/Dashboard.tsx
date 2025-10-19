@@ -21,7 +21,6 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
-  Badge,
 } from '@chakra-ui/react';
 import { FiFile, FiUpload, FiTrash2 } from 'react-icons/fi';
 import { useAuthStore } from '../store/auth.store';
