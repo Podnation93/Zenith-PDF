@@ -1,5 +1,24 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  Center,
+  Container,
+  FormControl,
+  FormLabel,
+  FormHelperText,
+  Heading,
+  Input,
+  VStack,
+  Text,
+  Alert,
+  AlertIcon,
+  AlertDescription,
+  Link,
+  Grid,
+  GridItem,
+} from '@chakra-ui/react';
 import { useAuthStore } from '../store/auth.store';
 
 export default function Register() {
@@ -23,98 +42,102 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-      <div className="card w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-600 mt-2">Join Zenith PDF</p>
-        </div>
+    <Center minH="100vh" bgGradient="linear(to-br, brand.50, brand.100)">
+      <Container maxW="md">
+        <Box bg="white" p={8} borderRadius="lg" boxShadow="xl">
+          <VStack spacing={6} align="stretch">
+            <Box textAlign="center">
+              <Heading size="xl" color="gray.900">
+                Create Account
+              </Heading>
+              <Text color="gray.600" mt={2}>
+                Join Zenith PDF
+              </Text>
+            </Box>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                First Name
-              </label>
-              <input
-                id="firstName"
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="input"
-                placeholder="John"
-              />
-            </div>
+            <form onSubmit={handleSubmit}>
+              <VStack spacing={4} align="stretch">
+                <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel htmlFor="firstName">First Name</FormLabel>
+                      <Input
+                        id="firstName"
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="John"
+                      />
+                    </FormControl>
+                  </GridItem>
 
-            <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                Last Name
-              </label>
-              <input
-                id="lastName"
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="input"
-                placeholder="Doe"
-              />
-            </div>
-          </div>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel htmlFor="lastName">Last Name</FormLabel>
+                      <Input
+                        id="lastName"
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Doe"
+                      />
+                    </FormControl>
+                  </GridItem>
+                </Grid>
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input"
-              placeholder="you@example.com"
-              required
-            />
-          </div>
+                <FormControl isRequired>
+                  <FormLabel htmlFor="email">Email</FormLabel>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </FormControl>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input"
-              placeholder="••••••••"
-              required
-              minLength={8}
-            />
-            <p className="text-xs text-gray-500 mt-1">At least 8 characters</p>
-          </div>
+                <FormControl isRequired>
+                  <FormLabel htmlFor="password">Password</FormLabel>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    minLength={8}
+                  />
+                  <FormHelperText>At least 8 characters</FormHelperText>
+                </FormControl>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
+                {error && (
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="btn btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Creating account...' : 'Create account'}
-          </button>
-        </form>
+                <Button
+                  type="submit"
+                  colorScheme="brand"
+                  size="lg"
+                  width="full"
+                  isLoading={isLoading}
+                  loadingText="Creating account..."
+                >
+                  Create account
+                </Button>
+              </VStack>
+            </form>
 
-        <p className="text-center mt-6 text-sm text-gray-600">
-          Already have an account?{' '}
-          <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-            Sign in
-          </Link>
-        </p>
-      </div>
-    </div>
+            <Text textAlign="center" fontSize="sm" color="gray.600">
+              Already have an account?{' '}
+              <Link as={RouterLink} to="/login" color="brand.600" fontWeight="medium">
+                Sign in
+              </Link>
+            </Text>
+          </VStack>
+        </Box>
+      </Container>
+    </Center>
   );
 }

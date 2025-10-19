@@ -1,8 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  Center,
+  Flex,
+  Heading,
+  IconButton,
+  Spinner,
+  Text,
+  VStack,
+  Badge,
+  Icon,
+  HStack,
+  Divider,
+} from '@chakra-ui/react';
+import { FiArrowLeft, FiShare2, FiDownload } from 'react-icons/fi';
 import { useAuthStore } from '../store/auth.store';
 import { useDocumentStore } from '../store/document.store';
 import { websocketService } from '../services/websocket';
+import PDFViewer from '../components/PDFViewer';
 
 export default function DocumentViewer() {
   const { documentId } = useParams<{ documentId: string }>();
@@ -10,6 +27,7 @@ export default function DocumentViewer() {
   const { user } = useAuthStore();
   const { currentDocument, fetchDocument, isLoading } = useDocumentStore();
   const [wsConnected, setWsConnected] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (!documentId) {
@@ -26,6 +44,7 @@ export default function DocumentViewer() {
         .connect(documentId, token, user.id)
         .then(() => {
           setWsConnected(true);
+          console.log('WebSocket connected successfully');
         })
         .catch((error) => {
           console.error('WebSocket connection failed:', error);
@@ -36,83 +55,150 @@ export default function DocumentViewer() {
     return () => {
       websocketService.disconnect();
     };
-  }, [documentId, user?.id]);
+  }, [documentId, user?.id, fetchDocument, navigate]);
+
+  const handleExport = () => {
+    // TODO: Implement PDF export with flattened annotations
+    console.log('Export functionality coming soon');
+  };
+
+  const handleShare = () => {
+    // TODO: Implement sharing modal
+    console.log('Share functionality coming soon');
+  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading document...</p>
-        </div>
-      </div>
+      <Center minH="100vh">
+        <VStack spacing={4}>
+          <Spinner size="xl" color="brand.500" thickness="4px" />
+          <Text color="gray.600">Loading document...</Text>
+        </VStack>
+      </Center>
     );
   }
 
   if (!currentDocument) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-red-600">Document not found</p>
-          <button onClick={() => navigate('/dashboard')} className="btn btn-primary mt-4">
+      <Center minH="100vh">
+        <VStack spacing={4}>
+          <Text color="red.500" fontSize="lg">Document not found</Text>
+          <Button colorScheme="brand" onClick={() => navigate('/dashboard')}>
             Back to Dashboard
-          </button>
-        </div>
-      </div>
+          </Button>
+        </VStack>
+      </Center>
     );
   }
 
-  return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/dashboard')} className="text-gray-600 hover:text-gray-900">
-              ← Back
-            </button>
-            <h1 className="text-lg font-medium text-gray-900">
-              {currentDocument.originalFilename}
-            </h1>
-          </div>
+  // Get the document URL from backend
+  const documentUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/documents/${documentId}/download`;
 
-          <div className="flex items-center gap-4">
+  return (
+    <Box h="100vh" display="flex" flexDirection="column">
+      {/* Header */}
+      <Box bg="white" shadow="sm" borderBottom="1px" borderColor="gray.200">
+        <Flex px={4} py={3} align="center" justify="space-between">
+          <HStack spacing={4}>
+            <IconButton
+              aria-label="Back to dashboard"
+              icon={<Icon as={FiArrowLeft} />}
+              variant="ghost"
+              onClick={() => navigate('/dashboard')}
+            />
+            <Heading size="md" noOfLines={1}>
+              {currentDocument.originalFilename}
+            </Heading>
+          </HStack>
+
+          <HStack spacing={4}>
             {wsConnected && (
-              <span className="flex items-center gap-2 text-sm text-green-600">
-                <span className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></span>
-                Connected
-              </span>
+              <HStack spacing={2}>
+                <Box w={2} h={2} bg="green.500" borderRadius="full" animation="pulse 2s infinite" />
+                <Text fontSize="sm" color="green.600">
+                  Connected
+                </Text>
+              </HStack>
             )}
-            <button className="btn btn-secondary text-sm">Share</button>
-            <button className="btn btn-primary text-sm">Export</button>
-          </div>
-        </div>
-      </header>
+            <Button
+              leftIcon={<Icon as={FiShare2} />}
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+            >
+              Share
+            </Button>
+            <Button
+              leftIcon={<Icon as={FiDownload} />}
+              colorScheme="brand"
+              size="sm"
+              onClick={handleExport}
+            >
+              Export
+            </Button>
+          </HStack>
+        </Flex>
+      </Box>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <Flex flex="1" overflow="hidden">
         {/* PDF Viewer Area */}
-        <div className="flex-1 bg-gray-100 flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            <p className="text-lg font-medium">PDF Viewer</p>
-            <p className="text-sm mt-2">
-              PDF rendering with PDF.js will be implemented here
-            </p>
-            <p className="text-sm mt-1">Document ID: {documentId}</p>
-            <p className="text-sm">Pages: {currentDocument.pageCount || 'Unknown'}</p>
-          </div>
-        </div>
+        <Box flex="1" bg="gray.100">
+          <PDFViewer
+            documentUrl={documentUrl}
+            onPageChange={setCurrentPage}
+          />
+        </Box>
 
         {/* Sidebar for annotations/comments */}
-        <div className="w-80 bg-white border-l overflow-y-auto">
-          <div className="p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">Annotations</h3>
-            <p className="text-sm text-gray-500">
-              Annotation tools and comment threads will appear here
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+        <Box
+          w="320px"
+          bg="white"
+          borderLeft="1px"
+          borderColor="gray.200"
+          overflow="auto"
+        >
+          <VStack spacing={4} p={4} align="stretch">
+            <Box>
+              <Heading size="sm" mb={4}>Annotations</Heading>
+              <Text fontSize="sm" color="gray.500">
+                Annotation tools will appear here. You can add highlights, comments, and sticky notes to the document.
+              </Text>
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Heading size="sm" mb={4}>Comments</Heading>
+              <Text fontSize="sm" color="gray.500">
+                Comment threads and discussions will appear here. Use @mentions to notify team members.
+              </Text>
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Heading size="sm" mb={4}>Document Info</Heading>
+              <VStack align="stretch" spacing={2} fontSize="sm">
+                <Flex justify="space-between">
+                  <Text color="gray.600">Pages:</Text>
+                  <Text fontWeight="medium">{currentDocument.pageCount || 'N/A'}</Text>
+                </Flex>
+                <Flex justify="space-between">
+                  <Text color="gray.600">Current Page:</Text>
+                  <Text fontWeight="medium">{currentPage}</Text>
+                </Flex>
+                <Flex justify="space-between">
+                  <Text color="gray.600">Size:</Text>
+                  <Text fontWeight="medium">
+                    {(currentDocument.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB
+                  </Text>
+                </Flex>
+              </VStack>
+            </Box>
+          </VStack>
+        </Box>
+      </Flex>
+    </Box>
   );
 }

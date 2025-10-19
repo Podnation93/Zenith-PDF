@@ -1,5 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  Container,
+  Flex,
+  Grid,
+  Heading,
+  Text,
+  VStack,
+  Spinner,
+  Center,
+  Icon,
+  IconButton,
+  useToast,
+  useDisclosure,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  Badge,
+} from '@chakra-ui/react';
+import { FiFile, FiUpload, FiTrash2 } from 'react-icons/fi';
 import { useAuthStore } from '../store/auth.store';
 import { useDocumentStore } from '../store/document.store';
 import { formatDistanceToNow } from 'date-fns';
@@ -9,6 +33,11 @@ export default function Dashboard() {
   const { documents, fetchDocuments, uploadDocument, deleteDocument, isLoading } = useDocumentStore();
   const navigate = useNavigate();
   const [isUploading, setIsUploading] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchDocuments();
@@ -19,25 +48,67 @@ export default function Dashboard() {
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
-      alert('Please upload a PDF file');
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a PDF file',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
       return;
     }
 
     setIsUploading(true);
     try {
       const document = await uploadDocument(file);
+      toast({
+        title: 'Upload successful',
+        description: 'Your PDF has been uploaded',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
       navigate(`/document/${document.id}`);
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('Failed to upload document');
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to upload document',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
     } finally {
       setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handleDeleteClick = (docId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDocumentToDelete(docId);
+    onOpen();
+  };
+
+  const confirmDelete = async () => {
+    if (documentToDelete) {
+      await deleteDocument(documentToDelete);
+      toast({
+        title: 'Document deleted',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    onClose();
+    setDocumentToDelete(null);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -47,108 +118,145 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <Box minH="100vh" bg="gray.50">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Zenith PDF</h1>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
+      <Box bg="white" shadow="sm">
+        <Container maxW="7xl" py={4}>
+          <Flex justify="space-between" align="center">
+            <Heading size="lg">Zenith PDF</Heading>
+            <Flex align="center" gap={4}>
+              <Text fontSize="sm" color="gray.600">
                 {user?.firstName || user?.email}
-              </span>
-              <button onClick={handleLogout} className="btn btn-secondary text-sm">
+              </Text>
+              <Button onClick={handleLogout} variant="outline" size="sm">
                 Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+              </Button>
+            </Flex>
+          </Flex>
+        </Container>
+      </Box>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">My Documents</h2>
-            <label className="btn btn-primary cursor-pointer">
-              {isUploading ? 'Uploading...' : 'Upload PDF'}
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handleFileUpload}
-                className="hidden"
-                disabled={isUploading}
-              />
-            </label>
-          </div>
+      <Container maxW="7xl" py={8}>
+        <VStack spacing={6} align="stretch">
+          <Flex justify="space-between" align="center">
+            <Heading size="md">My Documents</Heading>
+            <Button
+              leftIcon={<Icon as={FiUpload} />}
+              colorScheme="brand"
+              onClick={() => fileInputRef.current?.click()}
+              isLoading={isUploading}
+              loadingText="Uploading..."
+            >
+              Upload PDF
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+              disabled={isUploading}
+            />
+          </Flex>
 
           {isLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading documents...</p>
-            </div>
+            <Center py={12}>
+              <VStack spacing={4}>
+                <Spinner size="xl" color="brand.500" thickness="4px" />
+                <Text color="gray.600">Loading documents...</Text>
+              </VStack>
+            </Center>
           ) : documents.length === 0 ? (
-            <div className="text-center py-12 card">
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No documents</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Get started by uploading your first PDF document.
-              </p>
-            </div>
+            <Center py={12}>
+              <Box bg="white" p={12} borderRadius="lg" textAlign="center">
+                <Icon as={FiFile} boxSize={12} color="gray.400" mb={4} />
+                <Heading size="sm" mb={2}>No documents</Heading>
+                <Text color="gray.500">
+                  Get started by uploading your first PDF document.
+                </Text>
+              </Box>
+            </Center>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }} gap={6}>
               {documents.map((doc) => (
-                <div
+                <Box
                   key={doc.id}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group"
+                  bg="white"
+                  p={6}
+                  borderRadius="lg"
+                  shadow="md"
+                  _hover={{ shadow: 'lg', cursor: 'pointer' }}
+                  transition="all 0.2s"
                   onClick={() => navigate(`/document/${doc.id}`)}
+                  role="group"
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-medium text-gray-900 truncate group-hover:text-primary-600">
-                        {doc.originalFilename}
-                      </h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {formatFileSize(doc.fileSizeBytes)}
-                        {doc.pageCount && ` • ${doc.pageCount} pages`}
-                      </p>
-                    </div>
-                  </div>
+                  <Flex direction="column" h="full">
+                    <Flex align="start" justify="space-between" mb={4}>
+                      <VStack align="start" spacing={1} flex={1} mr={2}>
+                        <Heading
+                          size="sm"
+                          noOfLines={1}
+                          _groupHover={{ color: 'brand.600' }}
+                          transition="color 0.2s"
+                        >
+                          {doc.originalFilename}
+                        </Heading>
+                        <Text fontSize="sm" color="gray.500">
+                          {formatFileSize(doc.fileSizeBytes)}
+                          {doc.pageCount && ` • ${doc.pageCount} pages`}
+                        </Text>
+                      </VStack>
+                    </Flex>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">
-                      {formatDistanceToNow(new Date(doc.uploadDate), { addSuffix: true })}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm('Are you sure you want to delete this document?')) {
-                          deleteDocument(doc.id);
-                        }
-                      }}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
+                    <Flex justify="space-between" align="center" mt="auto">
+                      <Text fontSize="sm" color="gray.500">
+                        {formatDistanceToNow(new Date(doc.uploadDate), { addSuffix: true })}
+                      </Text>
+                      <IconButton
+                        aria-label="Delete document"
+                        icon={<Icon as={FiTrash2} />}
+                        size="sm"
+                        variant="ghost"
+                        colorScheme="red"
+                        onClick={(e) => handleDeleteClick(doc.id, e)}
+                      />
+                    </Flex>
+                  </Flex>
+                </Box>
               ))}
-            </div>
+            </Grid>
           )}
-        </div>
-      </main>
-    </div>
+        </VStack>
+      </Container>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Document
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure you want to delete this document? This action cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onClose}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </Box>
   );
 }

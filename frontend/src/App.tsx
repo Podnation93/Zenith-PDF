@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Box, Center, Spinner, Text, VStack } from '@chakra-ui/react';
 import { useAuthStore } from './store/auth.store';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -15,36 +16,38 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <Center minH="100vh">
+        <VStack spacing={4}>
+          <Spinner size="xl" color="brand.500" thickness="4px" />
+          <Text color="gray.600">Loading...</Text>
+        </VStack>
+      </Center>
     );
   }
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route
-          path="/login"
-          element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />}
-        />
-        <Route
-          path="/register"
-          element={!isAuthenticated ? <Register /> : <Navigate to="/dashboard" />}
-        />
-        <Route
-          path="/dashboard"
-          element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/document/:documentId"
-          element={isAuthenticated ? <DocumentViewer /> : <Navigate to="/login" />}
-        />
-        <Route path="/" element={<Navigate to="/dashboard" />} />
-      </Routes>
+      <Box minH="100vh">
+        <Routes>
+          <Route
+            path="/login"
+            element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />}
+          />
+          <Route
+            path="/register"
+            element={!isAuthenticated ? <Register /> : <Navigate to="/dashboard" />}
+          />
+          <Route
+            path="/dashboard"
+            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/document/:documentId"
+            element={isAuthenticated ? <DocumentViewer /> : <Navigate to="/login" />}
+          />
+          <Route path="/" element={<Navigate to="/dashboard" />} />
+        </Routes>
+      </Box>
     </BrowserRouter>
   );
 }

@@ -1,87 +1,102 @@
-# Zenith PDF v2.0 - Collaborative PDF Editor
+# Zenith PDF v2.0
 
-A free, web-based, real-time collaborative PDF reader and editor built with modern web technologies.
+<div align="center">
 
-## Features (MVP - Phase 1)
+![Zenith PDF Logo](https://via.placeholder.com/150?text=Zenith+PDF)
 
-- **User Management**: Secure authentication with JWT
-- **Document Handling**: PDF upload and cloud storage (MinIO/S3)
-- **Sharing & Permissions**: Share documents with view-only or comment access
-- **Real-time Collaboration**: WebSocket-based presence indicators and live updates
-- **Annotations**: Highlight text, add comments and sticky notes
-- **Comments**: Threaded discussions with @mentions and notifications
-- **Export**: Download PDFs with flattened annotations
+**A free, web-based, real-time collaborative PDF reader and editor**
 
-## Tech Stack
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)](https://www.typescriptlang.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-### Backend
-- **Framework**: Node.js + Fastify
-- **Database**: PostgreSQL 16
-- **Cache/Pub-Sub**: Redis
-- **Storage**: AWS S3 (MinIO for local dev)
-- **PDF Processing**: pdf-lib
-- **Real-time**: WebSockets with Redis Pub/Sub
-- **CRDT**: Yjs for conflict-free collaborative editing
-- **Language**: TypeScript
+[Features](#features) • [Quick Start](#quick-start) • [Documentation](#documentation) • [Contributing](#contributing) • [Roadmap](#roadmap)
+
+</div>
+
+---
+
+## Vision
+
+Zenith PDF eliminates the chaos of document review. No more emailing PDFs back and forth, tracking version numbers, or consolidating feedback from multiple sources. **See changes in real-time**, collaborate seamlessly with your team, and maintain a single source of truth for all your documents.
+
+## Features
+
+### Phase 1: MVP - "Collaborative Review Tool" ✅
+
+- **🔐 User Authentication** - Secure JWT-based authentication with user profiles
+- **📄 Document Management** - Upload, store, and organize PDFs in the cloud (AWS S3/MinIO)
+- **🔗 Smart Sharing** - Share documents with granular permissions (view, comment, edit)
+- **👥 Real-Time Presence** - See who's viewing the document with live cursor tracking
+- **✏️ Rich Annotations**
+  - Highlight text with customizable colors
+  - Add comments and sticky notes
+  - Threaded discussions with @mention support
+- **💬 Collaborative Comments** - Reply to comments, resolve threads, get notifications
+- **📤 Export** - Download PDFs with annotations flattened into the document
+- **📡 Offline Support** - View documents and annotations offline; auto-sync on reconnect
+- **📊 Activity Feed** - Track who added or edited annotations and when
+
+### Phase 2: v1.1 - "Markup Toolkit" (In Progress)
+
+- **Advanced Annotations** - Underline, strikethrough, freehand drawing, shapes
+- **Annotation Templates** - Save and reuse custom annotation styles
+- **Page Management** - Drag-and-drop reordering, page deletion
+- **Text Search** - Find specific content within documents
+
+### Phase 3: v2.0 - "Full Editor" (Planned)
+
+- **Content Editing** - Directly edit text and images in PDFs
+- **Form Filling** - Interactive PDF form support
+- **Digital Signatures** - Create and apply signatures
+- **WCAG 2.1 AA Accessibility** - Screen reader support, keyboard navigation, high-contrast modes
+- **Document Templates** - Create new PDFs from templates
+
+---
+
+## Technology Stack
 
 ### Frontend
-- **Framework**: React 18 + TypeScript
-- **Build Tool**: Vite
-- **PDF Rendering**: PDF.js
-- **PDF Manipulation**: pdf-lib
-- **State Management**: Zustand
-- **Styling**: Tailwind CSS
-- **Routing**: React Router
+- **Framework:** React 18 + TypeScript
+- **Build Tool:** Vite
+- **UI Library:** Chakra UI (accessible, themeable components)
+- **PDF Rendering:** PDF.js (Mozilla)
+- **PDF Manipulation:** pdf-lib
+- **State Management:** Zustand
+- **Real-time:** WebSockets with auto-reconnect
+
+### Backend
+- **Framework:** Node.js + Fastify
+- **Database:** PostgreSQL 16
+- **Cache/Pub-Sub:** Redis 7
+- **Storage:** AWS S3 (MinIO for local development)
+- **Synchronization:** CRDTs with Yjs
+- **Real-time:** WebSockets + Redis Pub/Sub
+- **Language:** TypeScript
 
 ### Infrastructure
-- **Containerization**: Docker + Docker Compose
-- **Orchestration**: Kubernetes (production)
-- **CI/CD**: GitHub Actions
-- **Hosting**: AWS
+- **Containerization:** Docker + Docker Compose
+- **Orchestration:** Kubernetes (production)
+- **CI/CD:** GitHub Actions
+- **Monitoring:** Prometheus + Grafana + OpenTelemetry
+- **Cloud:** AWS (Lambda, API Gateway, S3, RDS, ElastiCache)
 
-## Project Structure
+---
 
-```
-zenith-pdf/
-├── backend/
-│   ├── src/
-│   │   ├── config/          # Configuration files
-│   │   ├── middleware/      # Auth and authorization middleware
-│   │   ├── routes/          # API routes
-│   │   ├── services/        # Business logic
-│   │   ├── websocket/       # WebSocket handlers
-│   │   ├── types/           # TypeScript types
-│   │   └── index.ts         # Main server file
-│   ├── database/
-│   │   └── init.sql         # Database schema
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── pages/           # Page components
-│   │   ├── services/        # API and WebSocket services
-│   │   ├── store/           # Zustand stores
-│   │   ├── types/           # TypeScript types
-│   │   └── main.tsx         # Entry point
-│   └── package.json
-├── docker-compose.yml       # Local development services
-└── package.json             # Root workspace config
-```
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- **Node.js**: >= 20.0.0
-- **npm**: >= 10.0.0
-- **Docker**: Latest version
-- **Docker Compose**: Latest version
+- **Node.js** >= 20.0.0
+- **npm** >= 10.0.0
+- **Docker** + **Docker Compose** (latest versions)
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/zenith-pdf/zenith-pdf.git
    cd zenith-pdf
    ```
 
@@ -90,198 +105,327 @@ zenith-pdf/
    npm install
    ```
 
-3. **Start Docker services**
+3. **Start Docker services** (PostgreSQL, Redis, MinIO)
    ```bash
    npm run docker:up
    ```
-   This starts:
-   - PostgreSQL (port 5432)
-   - Redis (port 6379)
-   - MinIO (port 9000, console: 9001)
 
-4. **Setup MinIO**
-   - Open http://localhost:9001 in your browser
-   - Login with credentials: `minioadmin` / `minioadmin`
-   - Create a bucket named `zenith-pdf-documents`
-   - Set the bucket policy to public or configure access keys
+4. **Configure MinIO** (S3-compatible storage)
+   - Open http://localhost:9001
+   - Login: `minioadmin` / `minioadmin`
+   - Create bucket: `zenith-pdf-documents`
+   - Set bucket to public or configure access keys
 
-5. **Initialize database**
-   The database schema is automatically initialized when PostgreSQL starts.
-
-6. **Start development servers**
+5. **Start development servers**
    ```bash
    npm run dev
    ```
-   This starts both backend and frontend in parallel:
-   - Backend: http://localhost:3000
-   - Frontend: http://localhost:5173
 
-### Default Test User
+6. **Access the application**
+   - **Frontend:** http://localhost:5173
+   - **Backend API:** http://localhost:3000
+   - **MinIO Console:** http://localhost:9001
 
-A test user is created automatically:
-- **Email**: test@zenith-pdf.com
-- **Password**: testpassword123
+### Test User
+
+A default test user is created automatically:
+- **Email:** `test@zenith-pdf.com`
+- **Password:** `testpassword123`
+
+---
+
+## Project Structure
+
+```
+zenith-pdf/
+├── backend/              # Node.js + Fastify API server
+│   ├── src/
+│   │   ├── config/       # Environment & database configuration
+│   │   ├── middleware/   # Auth, IDOR protection, rate limiting
+│   │   ├── routes/       # RESTful API endpoints
+│   │   ├── services/     # Business logic (documents, annotations, comments)
+│   │   ├── websocket/    # Real-time collaboration handlers
+│   │   ├── types/        # TypeScript type definitions
+│   │   └── utils/        # Helper functions
+│   ├── database/
+│   │   └── init.sql      # PostgreSQL schema with security functions
+│   └── package.json
+├── frontend/             # React + TypeScript SPA
+│   ├── src/
+│   │   ├── components/   # Reusable UI components
+│   │   ├── pages/        # Login, Register, Dashboard, DocumentViewer
+│   │   ├── services/     # API client & WebSocket service
+│   │   ├── store/        # Zustand state management
+│   │   ├── types/        # TypeScript interfaces
+│   │   └── utils/        # Client-side utilities
+│   └── package.json
+├── docker-compose.yml    # Local development services
+├── .github/
+│   └── workflows/        # CI/CD pipelines
+└── docs/                 # Additional documentation
+```
+
+---
+
+## Documentation
+
+- **[Getting Started Guide](GETTING_STARTED.md)** - Detailed setup instructions
+- **[API Documentation](docs/API.md)** - Complete REST API reference
+- **[WebSocket Protocol](docs/WEBSOCKET.md)** - Real-time event specifications
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and decisions
+- **[Security](docs/SECURITY.md)** - Security features and best practices
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+
+---
 
 ## Development
 
-### Backend Development
-
+### Run Backend Only
 ```bash
-cd backend
-npm run dev        # Start with hot reload
-npm run build      # Build for production
-npm run test       # Run tests
-npm run lint       # Lint code
+npm run dev:backend
+# Server runs on http://localhost:3000
 ```
 
-### Frontend Development
-
+### Run Frontend Only
 ```bash
-cd frontend
-npm run dev        # Start development server
-npm run build      # Build for production
-npm run preview    # Preview production build
-npm run lint       # Lint code
+npm run dev:frontend
+# App runs on http://localhost:5173
+```
+
+### Build for Production
+```bash
+npm run build
+# Builds both backend and frontend
+```
+
+### Run Tests
+```bash
+npm test
+# Runs tests across all workspaces
+```
+
+### Lint Code
+```bash
+npm run lint
+# Lints TypeScript/JavaScript files
 ```
 
 ### Database Management
-
 ```bash
-# Access PostgreSQL
+# Access PostgreSQL CLI
 docker exec -it zenith-postgres psql -U zenith_user -d zenith_pdf
 
-# View logs
+# View container logs
 docker logs zenith-postgres
+docker logs zenith-redis
+docker logs zenith-minio
 
-# Reset database (warning: deletes all data)
+# Reset database (⚠️ deletes all data)
 npm run docker:down
 docker volume rm zenith-pdf_postgres_data
 npm run docker:up
 ```
 
-## API Documentation
+---
+
+## API Overview
 
 ### Authentication
 - `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user
-- `PATCH /api/auth/me` - Update profile
-- `POST /api/auth/logout` - Logout
+- `POST /api/auth/login` - Login with email/password
+- `GET /api/auth/me` - Get current user profile
+- `PATCH /api/auth/me` - Update user profile
+- `POST /api/auth/logout` - Logout user
 
 ### Documents
-- `POST /api/documents/upload` - Upload PDF
+- `POST /api/documents/upload` - Upload PDF file
 - `GET /api/documents` - List user's documents
-- `GET /api/documents/:id` - Get document details
-- `GET /api/documents/:id/download` - Get download URL
-- `DELETE /api/documents/:id` - Delete document
+- `GET /api/documents/:id` - Get document metadata
+- `GET /api/documents/:id/download` - Get signed download URL
+- `DELETE /api/documents/:id` - Delete document (soft delete)
 
 ### Annotations
 - `POST /api/documents/:id/annotations` - Create annotation
-- `GET /api/documents/:id/annotations` - List annotations
+- `GET /api/documents/:id/annotations` - List all annotations
 - `PATCH /api/documents/:id/annotations/:annotationId` - Update annotation
 - `DELETE /api/documents/:id/annotations/:annotationId` - Delete annotation
 
 ### Comments
-- `POST /api/documents/:id/comments` - Create comment
-- `GET /api/documents/:id/comments` - List comments
-- `PATCH /api/documents/:id/comments/:commentId` - Update comment
+- `POST /api/documents/:id/comments` - Create comment/reply
+- `GET /api/documents/:id/comments` - List all comments
+- `PATCH /api/documents/:id/comments/:commentId` - Edit comment
 - `DELETE /api/documents/:id/comments/:commentId` - Delete comment
 
 ### WebSocket
-- `WS /ws/:documentId` - Real-time collaboration socket
+- `WS /ws/:documentId` - Real-time collaboration connection
 
-## Security Features
+Full API documentation: [docs/API.md](docs/API.md)
 
-### IDOR Protection
-All API endpoints and WebSocket messages validate user permissions before allowing access to resources.
+---
 
-### Server-Side PDF Processing
-PDF manipulation occurs in isolated environments (AWS Lambda in production) to prevent malicious file exploits.
+## Security
 
-### Authentication
-- JWT-based authentication with refresh tokens
-- Bcrypt password hashing with salt rounds
-- Token expiration and rotation
+Zenith PDF implements defense-in-depth security practices:
 
-### Authorization
-- Row-level security via database functions
-- Permission-based access control (view, comment, edit, admin)
-- Share links with optional password protection
+### ✅ Core Security Features
 
-## Environment Variables
+- **🔒 IDOR Protection** - All endpoints validate user permissions before resource access
+- **🛡️ Server-Side Validation** - WebSocket messages validated and authorized server-side
+- **🔐 JWT Authentication** - Secure token-based auth with refresh tokens
+- **🔑 Password Security** - Bcrypt hashing with configurable salt rounds
+- **📋 Audit Logging** - Track all document and annotation changes
+- **⚡ Rate Limiting** - Protect against abuse and DDoS attacks
+- **🏝️ Isolated PDF Processing** - Sandboxed AWS Lambda for PDF manipulation (production)
+- **🚫 SQL Injection Prevention** - Parameterized queries and ORM usage
+- **🌐 CORS Configuration** - Strict origin validation
+- **📝 Input Validation** - All API inputs validated with schemas
 
-### Backend (.env)
+See [SECURITY.md](docs/SECURITY.md) for vulnerability reporting and security policies.
 
-```env
-NODE_ENV=development
-PORT=3000
-DATABASE_URL=postgresql://zenith_user:zenith_dev_password@localhost:5432/zenith_pdf
-REDIS_HOST=localhost
-REDIS_PORT=6379
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production-32chars-minimum
-S3_ENDPOINT=http://localhost:9000
-S3_BUCKET=zenith-pdf-documents
-S3_ACCESS_KEY_ID=minioadmin
-S3_SECRET_ACCESS_KEY=minioadmin
-CORS_ORIGIN=http://localhost:5173
-```
-
-## Production Deployment
-
-### Docker Build
-
-```bash
-# Build backend
-docker build -t zenith-pdf-backend ./backend
-
-# Build frontend
-docker build -t zenith-pdf-frontend ./frontend
-```
-
-### Environment Setup
-
-1. Update `.env` files with production values
-2. Set strong `JWT_SECRET` (minimum 32 characters)
-3. Configure production PostgreSQL instance
-4. Configure production Redis instance
-5. Set up AWS S3 bucket
-6. Configure CORS_ORIGIN to production domain
-
-### AWS Lambda for PDF Processing
-
-For production, offload PDF processing to AWS Lambda:
-1. Create Lambda function with pdf-lib
-2. Configure S3 event triggers
-3. Update backend to invoke Lambda for exports
+---
 
 ## Roadmap
 
-### Phase 2: v1.1 - The "Markup Toolkit"
-- Underline and strikethrough annotations
-- Freehand drawing tools
-- Basic shapes (rectangles, arrows, ellipses)
-- Page reordering and deletion
+### ✅ Phase 1: MVP (Current)
+- [x] User authentication & authorization
+- [x] Document upload & storage
+- [x] Real-time WebSocket infrastructure
+- [x] Basic annotations (highlight, comments)
+- [x] Threaded comment system
+- [x] Sharing & permissions
+- [ ] PDF.js rendering integration (90% complete)
+- [ ] Annotation UI components (in progress)
+- [ ] Export with flattened annotations
 
-### Phase 3: v2.0 - The "Full Editor"
-- Direct text editing
-- Image manipulation
-- Form filling
-- Digital signatures
+### 🔄 Phase 2: v1.1 - Markup Toolkit (Q2 2025)
+- [ ] Expanded annotation tools (shapes, freehand)
+- [ ] Annotation templates
+- [ ] Page reordering and deletion
+- [ ] Full-text search
+
+### 🔮 Phase 3: v2.0 - Full Editor (Q3-Q4 2025)
+- [ ] Direct text editing
+- [ ] Image manipulation
+- [ ] Form filling
+- [ ] Digital signatures
+- [ ] WCAG 2.1 AA compliance
+- [ ] Document templates
+
+See [ROADMAP.md](docs/ROADMAP.md) for detailed feature planning and timelines.
+
+---
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+We welcome contributions from the community! Zenith PDF is **free and open-source software** (FOSS) under the MIT License.
+
+### How to Contribute
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'feat: add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
+
+### Development Priorities
+
+We're currently seeking help with:
+- **PDF.js integration** for document rendering
+- **Annotation UI components** (toolbar, selection tools)
+- **Accessibility features** (ARIA labels, keyboard navigation)
+- **Unit and integration tests**
+- **Documentation improvements**
+
+---
+
+## Community
+
+- **GitHub Discussions:** Ask questions and share ideas
+- **Issue Tracker:** Report bugs and request features
+- **Discord:** Join our community chat (coming soon)
+- **Twitter:** [@ZenithPDF](https://twitter.com/zenithpdf) (coming soon)
+
+---
+
+## Performance & Scalability
+
+- **Horizontally Scalable:** Redis Pub/Sub enables multi-instance deployments
+- **Efficient Rendering:** PDF.js with canvas-based rendering and lazy loading
+- **Optimized Database:** Indexed queries, connection pooling, materialized views
+- **CDN Integration:** Static assets served via CloudFront (production)
+- **Real-time Optimization:** WebSocket heartbeat with auto-reconnect logic
+- **CRDT Synchronization:** Conflict-free collaborative editing with eventual consistency
+
+---
 
 ## License
 
-[Add your license here]
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+```
+MIT License
+
+Copyright (c) 2025 Zenith PDF Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+```
+
+---
+
+## Acknowledgments
+
+- **PDF.js** - Mozilla's PDF rendering engine
+- **pdf-lib** - JavaScript library for PDF manipulation
+- **Chakra UI** - Accessible React component library
+- **Yjs** - CRDT framework for real-time collaboration
+- **Fastify** - Fast and low-overhead web framework
+- **All contributors** who help make Zenith PDF better
+
+---
 
 ## Support
 
-For issues and questions:
-- GitHub Issues: [repository-url]/issues
-- Email: support@zenith-pdf.com
+### Need Help?
+
+- **Documentation:** Check the [docs/](docs/) folder
+- **Issues:** Search [existing issues](https://github.com/zenith-pdf/zenith-pdf/issues)
+- **Discussions:** Ask on [GitHub Discussions](https://github.com/zenith-pdf/zenith-pdf/discussions)
+
+### Found a Bug?
+
+Please [open an issue](https://github.com/zenith-pdf/zenith-pdf/issues/new) with:
+- Clear description of the problem
+- Steps to reproduce
+- Expected vs actual behavior
+- Environment details (OS, browser, version)
+
+### Have a Feature Request?
+
+We'd love to hear your ideas! [Open a feature request](https://github.com/zenith-pdf/zenith-pdf/issues/new?labels=enhancement) with:
+- Use case description
+- How it benefits users
+- Any implementation suggestions
+
+---
+
+<div align="center">
+
+**Built with ❤️ by the Zenith PDF community**
+
+[⭐ Star us on GitHub](https://github.com/zenith-pdf/zenith-pdf) | [🐦 Follow on Twitter](https://twitter.com/zenithpdf)
+
+</div>

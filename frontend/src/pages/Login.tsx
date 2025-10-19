@@ -1,5 +1,21 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  Center,
+  Container,
+  FormControl,
+  FormLabel,
+  Heading,
+  Input,
+  VStack,
+  Text,
+  Alert,
+  AlertIcon,
+  AlertDescription,
+  Link,
+} from '@chakra-ui/react';
 import { useAuthStore } from '../store/auth.store';
 
 export default function Login() {
@@ -21,66 +37,72 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-      <div className="card w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Zenith PDF</h1>
-          <p className="text-gray-600 mt-2">Collaborative PDF Editor</p>
-        </div>
+    <Center minH="100vh" bgGradient="linear(to-br, brand.50, brand.100)">
+      <Container maxW="md">
+        <Box bg="white" p={8} borderRadius="lg" boxShadow="xl">
+          <VStack spacing={6} align="stretch">
+            <Box textAlign="center">
+              <Heading size="xl" color="gray.900">
+                Zenith PDF
+              </Heading>
+              <Text color="gray.600" mt={2}>
+                Collaborative PDF Editor
+              </Text>
+            </Box>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input"
-              placeholder="you@example.com"
-              required
-            />
-          </div>
+            <form onSubmit={handleSubmit}>
+              <VStack spacing={4} align="stretch">
+                <FormControl isRequired>
+                  <FormLabel htmlFor="email">Email</FormLabel>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </FormControl>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input"
-              placeholder="••••••••"
-              required
-            />
-          </div>
+                <FormControl isRequired>
+                  <FormLabel htmlFor="password">Password</FormLabel>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                  />
+                </FormControl>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
+                {error && (
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="btn btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
+                <Button
+                  type="submit"
+                  colorScheme="brand"
+                  size="lg"
+                  width="full"
+                  isLoading={isLoading}
+                  loadingText="Signing in..."
+                >
+                  Sign in
+                </Button>
+              </VStack>
+            </form>
 
-        <p className="text-center mt-6 text-sm text-gray-600">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-            Sign up
-          </Link>
-        </p>
-      </div>
-    </div>
+            <Text textAlign="center" fontSize="sm" color="gray.600">
+              Don't have an account?{' '}
+              <Link as={RouterLink} to="/register" color="brand.600" fontWeight="medium">
+                Sign up
+              </Link>
+            </Text>
+          </VStack>
+        </Box>
+      </Container>
+    </Center>
   );
 }
