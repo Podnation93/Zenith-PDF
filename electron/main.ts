@@ -1,5 +1,4 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import fs from 'fs/promises';
@@ -7,7 +6,7 @@ import { existsSync, mkdirSync } from 'fs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// __dirname is automatically available in CommonJS
 
 // Database setup
 const userDataPath = app.getPath('userData');

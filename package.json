@@ -3,7 +3,6 @@
   "version": "2.0.0",
   "description": "Free & Open-Source Offline PDF Annotation Desktop App",
   "main": "dist-electron/main.js",
-  "type": "module",
   "author": "Zenith PDF Team",
   "license": "MIT",
   "repository": {
@@ -13,14 +12,12 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:electron": "cross-env NODE_ENV=development electron-forge start",
+    "dev:electron": "electron . --enable-logging",
+    "electron:dev": "cross-env NODE_ENV=development electron .",
     "build": "npm run build:frontend && npm run build:electron",
     "build:frontend": "cd frontend && npm run build",
     "build:electron": "tsc -p electron/tsconfig.json",
-    "package": "npm run build && electron-forge package",
-    "make": "npm run build && electron-forge make",
-    "publish": "npm run build && electron-forge publish",
-    "start": "electron-forge start",
+    "package": "npm run build && electron-builder",
     "test": "cd frontend && npm test",
     "lint": "eslint . --ext .ts,.tsx"
   },
