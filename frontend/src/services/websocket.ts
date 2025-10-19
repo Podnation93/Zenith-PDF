@@ -1,19 +1,19 @@
-import type { WebSocketMessage } from '../types';
+import type { WebSocketMessage, User } from '../types';
 
 class WebSocketService {
   private ws: WebSocket | null = null;
   private documentId: string | null = null;
-  private userId: string | null = null;
+  private user: User | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private heartbeatInterval: number | null = null;
   private messageHandlers: Set<(message: WebSocketMessage) => void> = new Set();
 
-  connect(documentId: string, token: string, userId: string): Promise<void> {
+  connect(documentId: string, token: string, user: User): Promise<void> {
     return new Promise((resolve, reject) => {
       this.documentId = documentId;
-      this.userId = userId;
+      this.user = user;
 
       const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${
         window.location.host
@@ -25,6 +25,19 @@ class WebSocketService {
         console.log('WebSocket connected');
         this.reconnectAttempts = 0;
         this.startHeartbeat();
+
+        // Announce presence
+        this.send({
+          type: 'presence',
+          documentId: this.documentId!,
+          userId: this.user!.id,
+          payload: {
+            action: 'join',
+            user: this.user!,
+          },
+          timestamp: Date.now(),
+        });
+
         resolve();
       };
 
@@ -57,7 +70,7 @@ class WebSocketService {
       this.ws = null;
     }
     this.documentId = null;
-    this.userId = null;
+    this.user = null;
     this.reconnectAttempts = 0;
   }
 
@@ -91,7 +104,7 @@ class WebSocketService {
       this.send({
         type: 'heartbeat',
         documentId: this.documentId!,
-        userId: this.userId!,
+        userId: this.user!.id,
         timestamp: Date.now(),
       });
     }, 30000); // 30 seconds
@@ -116,10 +129,10 @@ class WebSocketService {
     console.log(`Attempting to reconnect in ${delay}ms...`);
 
     setTimeout(() => {
-      if (this.documentId && this.userId) {
+      if (this.documentId && this.user) {
         const token = localStorage.getItem('accessToken');
         if (token) {
-          this.connect(this.documentId, token, this.userId).catch((error) => {
+          this.connect(this.documentId, token, this.user).catch((error) => {
             console.error('Reconnect failed:', error);
           });
         }
@@ -132,9 +145,9 @@ class WebSocketService {
     this.send({
       type: 'presence',
       documentId: this.documentId!,
-      userId: this.userId!,
+      userId: this.user!.id,
       payload: {
-        userId: this.userId!,
+        user: this.user!,
         cursorPosition,
         action: 'update',
       },
@@ -146,7 +159,7 @@ class WebSocketService {
     this.send({
       type: 'cursor',
       documentId: this.documentId!,
-      userId: this.userId!,
+      userId: this.user!.id,
       payload: { cursorPosition },
       timestamp: Date.now(),
     });
@@ -156,7 +169,7 @@ class WebSocketService {
     this.send({
       type: 'annotation',
       documentId: this.documentId!,
-      userId: this.userId!,
+      userId: this.user!.id,
       payload: {
         annotationId,
         action,
@@ -170,7 +183,7 @@ class WebSocketService {
     this.send({
       type: 'comment',
       documentId: this.documentId!,
-      userId: this.userId!,
+      userId: this.user!.id,
       payload: {
         commentId,
         action,
@@ -179,6 +192,5 @@ class WebSocketService {
       timestamp: Date.now(),
     });
   }
-}
 
 export const websocketService = new WebSocketService();

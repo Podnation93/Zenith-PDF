@@ -1,6 +1,7 @@
 import { Box, IconButton, Icon, Tooltip } from '@chakra-ui/react';
 import { FiTrash2, FiMessageSquare } from 'react-icons/fi';
 import { Annotation, useAnnotationStore } from '../store/annotation.store';
+import { useCommentStore } from '../store/comment.store';
 
 interface AnnotationLayerProps {
   annotations: Annotation[];
@@ -18,12 +19,17 @@ export default function AnnotationLayer({
   onDeleteAnnotation,
 }: AnnotationLayerProps) {
   const { selectedAnnotation, setSelectedAnnotation } = useAnnotationStore();
+  const { setSelectedAnnotationId } = useCommentStore();
 
   const pageAnnotations = annotations.filter((ann) => ann.pageNumber === pageNumber);
 
   const handleAnnotationClick = (annotation: Annotation, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedAnnotation(annotation);
+    // When an annotation is clicked, show its comment thread.
+    if (annotation.type === 'highlight' || annotation.type === 'comment') {
+      setSelectedAnnotationId(annotation.id);
+    }
     onAnnotationClick?.(annotation);
   };
 

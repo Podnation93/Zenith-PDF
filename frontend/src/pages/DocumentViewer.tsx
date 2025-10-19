@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -12,19 +10,36 @@ import {
   VStack,
   Icon,
   HStack,
-  Divider,
+  useDisclosure,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
 } from '@chakra-ui/react';
 import { FiArrowLeft, FiShare2, FiDownload } from 'react-icons/fi';
 import { useAuthStore } from '../store/auth.store';
 import { useDocumentStore } from '../store/document.store';
+import { useCommentStore } from '../store/comment.store';
+import { usePresenceStore } from '../store/presence.store';
+import { useActivityStore } from '../store/activity.store';
 import { websocketService } from '../services/websocket';
 import EnhancedPDFViewer from '../components/EnhancedPDFViewer';
+import { CommentPanel } from '../components/CommentPanel';
+import { PresenceAvatarGroup } from '../components/PresenceAvatarGroup';
+import { exportPdfWithAnnotations } from '../services/pdfExporter';
+import { SharingModal } from '../components/SharingModal';
+import { ActivityFeedSidebar } from '../components/ActivityFeedSidebar';
 
 export default function DocumentViewer() {
   const { documentId } = useParams<{ documentId: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { currentDocument, fetchDocument, isLoading } = useDocumentStore();
+  const { initializeSocketListeners: initCommentListeners } = useCommentStore();
+  const { initialize: initPresenceListeners, clearPresence } = usePresenceStore();
+  const { initialize: initActivityListeners } = useActivityStore();
+  const { isOpen: isSharingOpen, onOpen: onSharingOpen, onClose: onSharingClose } = useDisclosure();
   const [wsConnected, setWsConnected] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -35,12 +50,15 @@ export default function DocumentViewer() {
     }
 
     fetchDocument(documentId);
+    initCommentListeners();
+    initPresenceListeners();
+    initActivityListeners();
 
     // Connect to WebSocket
     const token = localStorage.getItem('accessToken');
-    if (token && user?.id) {
+    if (token && user) {
       websocketService
-        .connect(documentId, token, user.id)
+        .connect(documentId, token, user)
         .then(() => {
           setWsConnected(true);
           console.log('WebSocket connected successfully');
@@ -53,17 +71,19 @@ export default function DocumentViewer() {
     // Cleanup on unmount
     return () => {
       websocketService.disconnect();
+      clearPresence();
     };
-  }, [documentId, user?.id, fetchDocument, navigate]);
+  }, [documentId, user, fetchDocument, navigate, initCommentListeners, initPresenceListeners, initActivityListeners, clearPresence]);
 
   const handleExport = () => {
-    // TODO: Implement PDF export with flattened annotations
-    console.log('Export functionality coming soon');
+    if (currentDocument) {
+      const documentUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/documents/${documentId}/download`;
+      exportPdfWithAnnotations(documentId!, documentUrl, currentDocument.originalFilename);
+    }
   };
 
   const handleShare = () => {
-    // TODO: Implement sharing modal
-    console.log('Share functionality coming soon');
+    onSharingOpen();
   };
 
   if (isLoading) {
@@ -111,6 +131,7 @@ export default function DocumentViewer() {
           </HStack>
 
           <HStack spacing={4}>
+            <PresenceAvatarGroup />
             {wsConnected && (
               <HStack spacing={2}>
                 <Box w={2} h={2} bg="green.500" borderRadius="full" animation="pulse 2s infinite" />
@@ -150,55 +171,40 @@ export default function DocumentViewer() {
           />
         </Box>
 
-        {/* Sidebar for annotations/comments */}
+        {/* Sidebar with Tabs */}
         <Box
-          w="320px"
-          bg="white"
-          borderLeft="1px"
+          w="350px"
+          h="100%"
+          borderLeft="1px solid"
           borderColor="gray.200"
-          overflow="auto"
+          bg="white"
+          display="flex"
+          flexDirection="column"
         >
-          <VStack spacing={4} p={4} align="stretch">
-            <Box>
-              <Heading size="sm" mb={4}>Annotations</Heading>
-              <Text fontSize="sm" color="gray.500">
-                Annotation tools will appear here. You can add highlights, comments, and sticky notes to the document.
-              </Text>
-            </Box>
-
-            <Divider />
-
-            <Box>
-              <Heading size="sm" mb={4}>Comments</Heading>
-              <Text fontSize="sm" color="gray.500">
-                Comment threads and discussions will appear here. Use @mentions to notify team members.
-              </Text>
-            </Box>
-
-            <Divider />
-
-            <Box>
-              <Heading size="sm" mb={4}>Document Info</Heading>
-              <VStack align="stretch" spacing={2} fontSize="sm">
-                <Flex justify="space-between">
-                  <Text color="gray.600">Pages:</Text>
-                  <Text fontWeight="medium">{currentDocument.pageCount || 'N/A'}</Text>
-                </Flex>
-                <Flex justify="space-between">
-                  <Text color="gray.600">Current Page:</Text>
-                  <Text fontWeight="medium">{currentPage}</Text>
-                </Flex>
-                <Flex justify="space-between">
-                  <Text color="gray.600">Size:</Text>
-                  <Text fontWeight="medium">
-                    {(currentDocument.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB
-                  </Text>
-                </Flex>
-              </VStack>
-            </Box>
-          </VStack>
+          <Tabs isFitted variant="enclosed" h="100%" display="flex" flexDirection="column">
+            <TabList>
+              <Tab>Comments</Tab>
+              <Tab>Activity</Tab>
+            </TabList>
+            <TabPanels flex="1" overflowY="auto">
+              <TabPanel h="100%">
+                <CommentPanel />
+              </TabPanel>
+              <TabPanel h="100%">
+                <ActivityFeedSidebar />
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
         </Box>
       </Flex>
+
+      {isSharingOpen && (
+        <SharingModal
+          documentId={documentId!}
+          isOpen={isSharingOpen}
+          onClose={onSharingClose}
+        />
+      )}
     </Box>
   );
 }
