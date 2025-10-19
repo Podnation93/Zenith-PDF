@@ -40,17 +40,16 @@ async function drawCommentMarker(page: any, annotation: Annotation, pdfDoc: PDFD
     });
 }
 
-export async function exportPdfWithAnnotations(documentId: string, documentUrl: string, originalFilename: string) {
+export async function exportPdfWithAnnotations(pdfDoc: PDFDocument, originalFilename: string) {
   try {
-    // 1. Fetch PDF and annotations
-    const pdfBytes = await fetchPdf(documentUrl);
-    const annotations = useAnnotationStore.getState().annotations;
+    // 1. Flatten form fields
+    const form = pdfDoc.getForm();
+    form.flatten();
 
-    // 2. Load PDF with pdf-lib
-    const pdfDoc = await PDFDocument.load(pdfBytes);
+    // 2. Draw annotations
+    const annotations = useAnnotationStore.getState().annotations;
     const pages = pdfDoc.getPages();
 
-    // 3. Draw annotations
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       const pageAnnotations = annotations.filter(a => a.pageNumber === i + 1);
@@ -63,26 +62,25 @@ export async function exportPdfWithAnnotations(documentId: string, documentUrl: 
           case 'comment':
             await drawCommentMarker(page, annotation, pdfDoc);
             break;
-          // Sticky notes and other types can be added here
+          // ... other annotation types
         }
       }
     }
 
-    // 4. Save the PDF
-    const pdfWithAnnotationsBytes = await pdfDoc.save();
+    // 3. Save the PDF
+    const pdfBytes = await pdfDoc.save();
 
-    // 5. Trigger download
-    const blob = new Blob([pdfWithAnnotationsBytes], { type: 'application/pdf' });
+    // 4. Trigger download
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = originalFilename.replace('.pdf', '-annotated.pdf');
+    link.download = originalFilename.replace('.pdf', '-filled.pdf');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
   } catch (error) {
-    console.error('Failed to export PDF with annotations:', error);
-    // Optionally, show a toast notification to the user
+    console.error('Failed to export PDF:', error);
     alert('Failed to export PDF. Please check the console for details.');
   }
 }

@@ -17,6 +17,10 @@ import {
   SliderTrack,
   SliderFilledTrack,
   SliderThumb,
+  Spacer,
+  InputGroup,
+  InputLeftElement,
+  Input,
 } from '@chakra-ui/react';
 import {
   FiMousePointer,
@@ -30,7 +34,9 @@ import {
   FiSquare,
   FiArrowUpRight,
   FiCircle,
+  FiSearch,
 } from 'react-icons/fi';
+import { useSearchStore } from '../store/search.store';
 import { useAnnotationStore } from '../store/annotation.store';
 
 const HIGHLIGHT_COLORS = [
@@ -53,6 +59,15 @@ export default function AnnotationToolbar() {
     setStrokeWidth,
     setOpacity,
   } = useAnnotationStore();
+  const { query, setQuery, search } = useSearchStore();
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      // The search action needs the pdfDoc object, which is not available here.
+      // This suggests the search action should be triggered from DocumentViewer.
+      // For now, we will just set the query.
+    }
+  };
 
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
@@ -205,6 +220,20 @@ export default function AnnotationToolbar() {
             <SliderThumb />
           </Slider>
         </VStack>
+
+        <Spacer />
+
+        <InputGroup size="sm" w="250px">
+          <InputLeftElement pointerEvents="none">
+            <Icon as={FiSearch} color="gray.300" />
+          </InputLeftElement>
+          <Input 
+            placeholder="Search document..." 
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+          />
+        </InputGroup>
 
       </HStack>
     </Box>

@@ -15,6 +15,7 @@ import { FiChevronLeft, FiChevronRight, FiZoomIn, FiZoomOut } from 'react-icons/
 import * as pdfjsLib from 'pdfjs-dist';
 import AnnotationToolbar from './AnnotationToolbar';
 import AnnotationLayer from './AnnotationLayer';
+import { FormLayer } from './FormLayer';
 import { useAnnotationStore } from '../store/annotation.store';
 import { useTextSelection } from '../hooks/useTextSelection';
 
@@ -24,17 +25,18 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 interface EnhancedPDFViewerProps {
   documentId: string;
   pdfDoc: pdfjsLib.PDFDocumentProxy | null;
+  currentPage: number;
   onPageChange?: (page: number) => void;
 }
 
 export default function EnhancedPDFViewer({
   documentId,
   pdfDoc,
+  currentPage,
   onPageChange,
 }: EnhancedPDFViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(0);
   const [scale, setScale] = useState(1.5);
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
@@ -250,14 +252,14 @@ export default function EnhancedPDFViewer({
   };
 
   const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+    if (onPageChange && currentPage > 1) {
+      onPageChange(currentPage - 1);
     }
   };
 
   const goToNextPage = () => {
-    if (currentPage < numPages) {
-      setCurrentPage(currentPage + 1);
+    if (onPageChange && currentPage < numPages) {
+      onPageChange(currentPage + 1);
     }
   };
 
@@ -268,8 +270,6 @@ export default function EnhancedPDFViewer({
   const zoomOut = () => {
     setScale(Math.max(scale - 0.25, 0.5));
   };
-
-
 
   return (
     <Box h="full" display="flex" flexDirection="column">
@@ -357,12 +357,23 @@ export default function EnhancedPDFViewer({
             style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
           />
 
+import { FormLayer } from './FormLayer';
+
+// ...
+
           {/* Annotation Layer */}
           <AnnotationLayer
             annotations={annotations}
             pageNumber={currentPage}
             scale={scale}
             onDeleteAnnotation={handleDeleteAnnotation}
+          />
+
+          {/* Form Layer */}
+          <FormLayer 
+            pdfDoc={pdfDoc} 
+            pageNumber={currentPage} 
+            scale={scale} 
           />
         </Box>
       </Box>

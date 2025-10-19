@@ -151,6 +151,7 @@ export default function AnnotationLayer({
                     strikethrough: <line x1="0" y1="50%" x2="100%" y2="50%" stroke={annotation.color} strokeWidth={annotation.strokeWidth} />,
                     rectangle: <rect width="100%" height="100%" fill="none" stroke={annotation.color} strokeWidth={annotation.strokeWidth} opacity={annotation.opacity} />,
                     ellipse: <ellipse cx="50%" cy="50%" rx="50%" ry="50%" fill="none" stroke={annotation.color} strokeWidth={annotation.strokeWidth} opacity={annotation.opacity} />,
+                    freehand: <polyline points={annotation.points?.map(p => `${p[0] * scale - annotation.position.x * scale},${p[1] * scale - annotation.position.y * scale}`).join(' ')} fill="none" stroke={annotation.color} strokeWidth={annotation.strokeWidth} opacity={annotation.opacity} />,
                     // ... other shapes would go here
                   }[annotation.type]
                 }
