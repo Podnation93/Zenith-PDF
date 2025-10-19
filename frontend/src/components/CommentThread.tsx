@@ -5,6 +5,24 @@ import { Annotation } from '../types';
 import { CommentInput } from './CommentInput';
 import { formatDistanceToNow } from 'date-fns';
 
+// Simple component to render comment content with highlighted mentions
+function CommentContent({ content }: { content: string }) {
+  const parts = content.split(/(@\w+)/g);
+  return (
+    <Text fontSize="sm" mt={1} whiteSpace="pre-wrap">
+      {parts.map((part, i) => 
+        part.startsWith('@') ? (
+          <Text as="span" key={i} color="blue.500" fontWeight="bold">
+            {part}
+          </Text>
+        ) : (
+          part
+        )
+      )}
+    </Text>
+  );
+}
+
 interface CommentThreadProps {
   annotation: Annotation;
   comments: Comment[];
@@ -21,7 +39,7 @@ function SingleComment({ comment }: { comment: Comment }) {
             {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
           </Text>
         </Flex>
-        <Text fontSize="sm" mt={1}>{comment.content}</Text>
+        <CommentContent content={comment.content} />
       </Box>
     </Flex>
   );

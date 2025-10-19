@@ -1,88 +1,95 @@
 import { create } from 'zustand';
+import { v4 as uuidv4 } from 'uuid';
 import { api } from '../services/api';
+import {
+  cacheAnnotations,
+  getCachedAnnotations,
+  addToSyncQueue,
+} from '../services/db';
+import { requestSync } from '../registerServiceWorker';
+import { v4 as uuidv4 } from 'uuid';
+import {
+  cacheAnnotations,
+  getCachedAnnotations,
+  addToSyncQueue,
+} from '../services/db';
 
-export interface Annotation {
-  id: string;
-  documentId: string;
-  type: 'highlight' | 'comment' | 'sticky_note';
-  pageNumber: number;
-  position: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-  content?: string;
-  color: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  metadata?: Record<string, any>;
-}
+// ... (interface definitions are the same)
 
-interface AnnotationState {
-  annotations: Annotation[];
-  selectedTool: 'select' | 'highlight' | 'comment' | 'sticky_note' | null;
-  selectedColor: string;
-  selectedAnnotation: Annotation | null;
-  isLoading: boolean;
-  error: string | null;
-
-  // Actions
-  setSelectedTool: (tool: 'select' | 'highlight' | 'comment' | 'sticky_note' | null) => void;
-  setSelectedColor: (color: string) => void;
-  setSelectedAnnotation: (annotation: Annotation | null) => void;
-
-  // API Actions
-  fetchAnnotations: (documentId: string) => Promise<void>;
-  createAnnotation: (documentId: string, annotation: Omit<Annotation, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => Promise<Annotation>;
-  updateAnnotation: (documentId: string, annotationId: string, updates: Partial<Annotation>) => Promise<void>;
-  deleteAnnotation: (documentId: string, annotationId: string) => Promise<void>;
-  clearAnnotations: () => void;
-}
-
-export const useAnnotationStore = create<AnnotationState>((set) => ({
-  annotations: [],
-  selectedTool: null,
-  selectedColor: '#FFEB3B', // Yellow default
-  selectedAnnotation: null,
-  isLoading: false,
-  error: null,
-
-  setSelectedTool: (tool) => set({ selectedTool: tool }),
-
-  setSelectedColor: (color) => set({ selectedColor: color }),
-
-  setSelectedAnnotation: (annotation) => set({ selectedAnnotation: annotation }),
+// ...
 
   fetchAnnotations: async (documentId: string) => {
     set({ isLoading: true, error: null });
     try {
+      // 1. Load from cache first
+      const cachedAnnotations = await getCachedAnnotations(documentId);
+      if (cachedAnnotations.length > 0) {
+        set({ annotations: cachedAnnotations });
+      }
+
+      // 2. Fetch from network
       const response = await api.get(`/api/documents/${documentId}/annotations`);
-      set({ annotations: response.data, isLoading: false });
+      const freshAnnotations = response.data;
+
+      // 3. Update state and cache
+      set({ annotations: freshAnnotations, isLoading: false });
+      await cacheAnnotations(freshAnnotations);
+
     } catch (error: any) {
-      set({ error: error.message || 'Failed to fetch annotations', isLoading: false });
-      throw error;
+      console.warn('Fetch from network failed, relying on cache.', error);
+      set({ isLoading: false, error: 'Could not fetch latest annotations.' });
     }
   },
 
   createAnnotation: async (documentId, annotationData) => {
     set({ error: null });
+    const tempId = `offline-${uuidv4()}`;
+    const newAnnotation = {
+      ...annotationData,
+      id: tempId,
+      documentId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as Annotation;
+
+    // Optimistically update UI
+    set((state) => ({
+      annotations: [...state.annotations, newAnnotation],
+    }));
+
+import { requestSync } from '../registerServiceWorker';
+
+// ...
+
+    if (!navigator.onLine) {
+      console.log('Offline, adding to sync queue.');
+      await addToSyncQueue({ type: 'createAnnotation', payload: { documentId, annotationData } });
+      requestSync(); // Request a background sync
+      return newAnnotation;
+    }
+
+//...
+
     try {
       const response = await api.post(
         `/api/documents/${documentId}/annotations`,
         annotationData
       );
-      const newAnnotation = response.data;
-      set((state) => ({
-        annotations: [...state.annotations, newAnnotation],
+      const savedAnnotation = response.data;
+
+      // Replace optimistic annotation with confirmed one from server
+      set(state => ({
+        annotations: state.annotations.map(a => a.id === tempId ? savedAnnotation : a)
       }));
-      return newAnnotation;
+
+      return savedAnnotation;
     } catch (error: any) {
       set({ error: error.message || 'Failed to create annotation' });
+      // Revert optimistic update on failure if needed, or add to sync queue
+      await addToSyncQueue({ type: 'createAnnotation', payload: { documentId, annotationData } });
       throw error;
     }
-  },
+  }
 
   updateAnnotation: async (documentId, annotationId, updates) => {
     set({ error: null });

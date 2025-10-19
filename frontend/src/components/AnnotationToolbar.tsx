@@ -11,6 +11,12 @@ import {
   Button,
   Icon,
   useColorModeValue,
+  VStack,
+  Text,
+  Slider,
+  SliderTrack,
+  SliderFilledTrack,
+  SliderThumb,
 } from '@chakra-ui/react';
 import {
   FiMousePointer,
@@ -18,6 +24,12 @@ import {
   FiMessageSquare,
   FiFileText,
   FiChevronDown,
+  FiUnderline,
+  FiMinusSquare,
+  FiPenTool,
+  FiSquare,
+  FiArrowUpRight,
+  FiCircle,
 } from 'react-icons/fi';
 import { useAnnotationStore } from '../store/annotation.store';
 
@@ -31,13 +43,21 @@ const HIGHLIGHT_COLORS = [
 ];
 
 export default function AnnotationToolbar() {
-  const { selectedTool, selectedColor, setSelectedTool, setSelectedColor } =
-    useAnnotationStore();
+  const {
+    selectedTool,
+    selectedColor,
+    strokeWidth,
+    opacity,
+    setSelectedTool,
+    setSelectedColor,
+    setStrokeWidth,
+    setOpacity,
+  } = useAnnotationStore();
 
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
 
-  const handleToolClick = (tool: typeof selectedTool) => {
+  const handleToolClick = (tool: any) => {
     setSelectedTool(selectedTool === tool ? null : tool);
   };
 
@@ -144,6 +164,48 @@ export default function AnnotationToolbar() {
             onClick={() => handleToolClick('sticky_note')}
           />
         </Tooltip>
+
+        <Divider orientation="vertical" h="30px" />
+
+        {/* New Shape & Drawing Tools */}
+        <Tooltip label="Underline" placement="bottom">
+          <IconButton aria-label="Underline tool" icon={<FiUnderline />} onClick={() => handleToolClick('underline')} variant={selectedTool === 'underline' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'underline' ? 'brand' : 'gray'} />
+        </Tooltip>
+        <Tooltip label="Strikethrough" placement="bottom">
+          <IconButton aria-label="Strikethrough tool" icon={<FiMinusSquare />} onClick={() => handleToolClick('strikethrough')} variant={selectedTool === 'strikethrough' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'strikethrough' ? 'brand' : 'gray'} />
+        </Tooltip>
+        <Tooltip label="Freehand" placement="bottom">
+          <IconButton aria-label="Freehand tool" icon={<FiPenTool />} onClick={() => handleToolClick('freehand')} variant={selectedTool === 'freehand' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'freehand' ? 'brand' : 'gray'} />
+        </Tooltip>
+        <Tooltip label="Rectangle" placement="bottom">
+          <IconButton aria-label="Rectangle tool" icon={<FiSquare />} onClick={() => handleToolClick('rectangle')} variant={selectedTool === 'rectangle' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'rectangle' ? 'brand' : 'gray'} />
+        </Tooltip>
+        <Tooltip label="Arrow" placement="bottom">
+          <IconButton aria-label="Arrow tool" icon={<FiArrowUpRight />} onClick={() => handleToolClick('arrow')} variant={selectedTool === 'arrow' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'arrow' ? 'brand' : 'gray'} />
+        </Tooltip>
+        <Tooltip label="Ellipse" placement="bottom">
+          <IconButton aria-label="Ellipse tool" icon={<FiCircle />} onClick={() => handleToolClick('ellipse')} variant={selectedTool === 'ellipse' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'ellipse' ? 'brand' : 'gray'} />
+        </Tooltip>
+
+        <Divider orientation="vertical" h="30px" />
+
+        {/* Style Controls */}
+        <VStack align="start" spacing={1} w="120px">
+          <Text fontSize="xs">Thickness</Text>
+          <Slider defaultValue={strokeWidth} min={1} max={20} step={1} onChange={(v) => setStrokeWidth(v)}>
+            <SliderTrack><SliderFilledTrack /></SliderTrack>
+            <SliderThumb />
+          </Slider>
+        </VStack>
+
+        <VStack align="start" spacing={1} w="120px">
+          <Text fontSize="xs">Opacity</Text>
+          <Slider defaultValue={opacity} min={0.1} max={1} step={0.1} onChange={(v) => setOpacity(v)}>
+            <SliderTrack><SliderFilledTrack /></SliderTrack>
+            <SliderThumb />
+          </Slider>
+        </VStack>
+
       </HStack>
     </Box>
   );

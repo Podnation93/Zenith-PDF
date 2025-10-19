@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { Annotation } from '../types';
 import { websocketService } from '../services/websocket';
 import type { WebSocketMessage } from '../types';
+import { usePresenceStore } from './presence.store';
 
 // As per backend schema:
 export interface Comment {
@@ -105,22 +106,37 @@ export const useCommentStore = create<CommentStore>((set, get) => ({
     }
   },
 
+import { usePresenceStore } from './presence.store';
+
+// ... (rest of the file is the same until addComment)
+
   addComment: async (annotationId: string, content: string, parentId?: string) => {
     try {
-      // The backend will persist this and broadcast it via WebSocket.
-      // The local user will receive their own message back via the socket listener,
-      // which serves as confirmation and ensures a single source of truth for updates.
-      const { data: newComment } = await api.post<Comment>(`/api/annotations/${annotationId}/comments`, {
+      // 1. Find all mentions in the content
+      const mentionRegex = /@(\w+)/g;
+      const mentionedNames = (content.match(mentionRegex) || []).map(m => m.substring(1));
+
+      // 2. Resolve mentioned names to user IDs
+      const presentUsers = Object.values(usePresenceStore.getState().presentUsers);
+      const mentionedUserIds = mentionedNames.reduce<string[]>((acc, name) => {
+        const user = presentUsers.find(u => u.name === name);
+        if (user) {
+          acc.push(user.id);
+        }
+        return acc;
+      }, []);
+
+      // 3. Send to the backend
+      await api.post<Comment>(`/api/annotations/${annotationId}/comments`, {
         content,
         parentId,
+        mentionedUserIds, // Pass the IDs to the backend
       });
 
       // The websocket listener will handle adding the comment to the state.
-      // This prevents duplicate comments.
-
     } catch (error) {
       console.error("Failed to add comment:", error);
-      // Optionally, set an error state to be displayed in the UI
+      throw error; // Re-throw to be caught in the UI for toast notifications
     }
   },
 

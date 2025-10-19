@@ -1,7 +1,8 @@
-
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Box, Button, Textarea, useToast } from '@chakra-ui/react';
 import { useCommentStore } from '../store/comment.store';
+import { usePresenceStore, PresenceUser } from '../store/presence.store';
+import { MentionSuggestions } from './MentionSuggestions';
 
 interface CommentInputProps {
   annotationId: string;
@@ -13,7 +14,47 @@ export function CommentInput({ annotationId, parentId, onCommentAdded }: Comment
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const addComment = useCommentStore((state) => state.addComment);
+  const presentUsers = usePresenceStore((state) => Object.values(state.presentUsers));
   const toast = useToast();
+
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setContent(value);
+
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const atMatch = textBeforeCursor.match(/@(\w*)$/);
+
+    if (atMatch) {
+      setMentionQuery(atMatch[1]);
+    } else {
+      setMentionQuery(null);
+    }
+  };
+
+  const handleSelectUser = (user: PresenceUser) => {
+    const cursorPos = textareaRef.current?.selectionStart;
+    if (cursorPos === undefined) return;
+
+    const textBeforeCursor = content.substring(0, cursorPos);
+    const textAfterCursor = content.substring(cursorPos);
+
+    const textBeforeMention = textBeforeCursor.replace(/@\w*$/, '');
+    const newContent = `${textBeforeMention}@${user.name} ${textAfterCursor}`;
+    
+    setContent(newContent);
+    setMentionQuery(null);
+
+    // Focus and set cursor position after the inserted mention
+    setTimeout(() => {
+      const newCursorPos = textBeforeMention.length + user.name.length + 2;
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
@@ -44,11 +85,19 @@ export function CommentInput({ annotationId, parentId, onCommentAdded }: Comment
     }
   };
 
+  const filteredUsers = mentionQuery !== null 
+    ? presentUsers.filter(u => u.name.toLowerCase().includes(mentionQuery.toLowerCase()))
+    : [];
+
   return (
-    <Box mt={2}>
+    <Box mt={2} position="relative">
+      {mentionQuery !== null && (
+        <MentionSuggestions users={filteredUsers} onSelectUser={handleSelectUser} />
+      )}
       <Textarea
+        ref={textareaRef}
         value={content}
-        onChange={(e) => setContent(e.target.value)}
+        onChange={handleContentChange}
         placeholder="Add a comment... (use @ to mention)"
         size="sm"
         borderRadius="md"

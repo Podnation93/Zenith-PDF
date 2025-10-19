@@ -1,22 +1,6 @@
-import {
-  Box,
-  Button,
-  Center,
-  Flex,
-  Heading,
-  IconButton,
-  Spinner,
-  Text,
-  VStack,
-  Icon,
-  HStack,
-  useDisclosure,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-} from '@chakra-ui/react';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Box, Button, Center, Flex, Heading, IconButton, Spinner, Text, VStack, Icon, HStack, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, } from '@chakra-ui/react';
 import { FiArrowLeft, FiShare2, FiDownload } from 'react-icons/fi';
 import { useAuthStore } from '../store/auth.store';
 import { useDocumentStore } from '../store/document.store';
@@ -24,6 +8,7 @@ import { useCommentStore } from '../store/comment.store';
 import { usePresenceStore } from '../store/presence.store';
 import { useActivityStore } from '../store/activity.store';
 import { websocketService } from '../services/websocket';
+import { getCachedDocument, cacheDocument } from '../services/db';
 import EnhancedPDFViewer from '../components/EnhancedPDFViewer';
 import { CommentPanel } from '../components/CommentPanel';
 import { PresenceAvatarGroup } from '../components/PresenceAvatarGroup';
@@ -42,6 +27,7 @@ export default function DocumentViewer() {
   const { isOpen: isSharingOpen, onOpen: onSharingOpen, onClose: onSharingClose } = useDisclosure();
   const [wsConnected, setWsConnected] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pdfSrc, setPdfSrc] = useState<string | null>(null);
 
   useEffect(() => {
     if (!documentId) {
@@ -49,7 +35,33 @@ export default function DocumentViewer() {
       return;
     }
 
-    fetchDocument(documentId);
+    async function loadDocument() {
+      await fetchDocument(documentId!);
+
+      const cachedPdf = await getCachedDocument(documentId!);
+      if (cachedPdf) {
+        const blobUrl = URL.createObjectURL(cachedPdf);
+        setPdfSrc(blobUrl);
+        return;
+      }
+
+      if (navigator.onLine) {
+        const documentUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/documents/${documentId}/download`;
+        try {
+          const response = await fetch(documentUrl);
+          if (!response.ok) throw new Error('Failed to fetch PDF');
+          const pdfBlob = await response.blob();
+          await cacheDocument(documentId!, pdfBlob);
+          const blobUrl = URL.createObjectURL(pdfBlob);
+          setPdfSrc(blobUrl);
+        } catch (error) {
+          console.error('Failed to fetch and cache PDF:', error);
+          setPdfSrc(documentUrl); // Fallback to direct URL
+        }
+      }
+    }
+
+    loadDocument();
     initCommentListeners();
     initPresenceListeners();
     initActivityListeners();
@@ -76,9 +88,8 @@ export default function DocumentViewer() {
   }, [documentId, user, fetchDocument, navigate, initCommentListeners, initPresenceListeners, initActivityListeners, clearPresence]);
 
   const handleExport = () => {
-    if (currentDocument) {
-      const documentUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/documents/${documentId}/download`;
-      exportPdfWithAnnotations(documentId!, documentUrl, currentDocument.originalFilename);
+    if (currentDocument && pdfSrc) {
+      exportPdfWithAnnotations(documentId!, pdfSrc, currentDocument.originalFilename);
     }
   };
 
@@ -86,7 +97,7 @@ export default function DocumentViewer() {
     onSharingOpen();
   };
 
-  if (isLoading) {
+  if (isLoading || !pdfSrc) {
     return (
       <Center minH="100vh">
         <VStack spacing={4}>
@@ -109,9 +120,6 @@ export default function DocumentViewer() {
       </Center>
     );
   }
-
-  // Get the document URL from backend
-  const documentUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/documents/${documentId}/download`;
 
   return (
     <Box h="100vh" display="flex" flexDirection="column">
@@ -166,7 +174,7 @@ export default function DocumentViewer() {
         <Box flex="1" bg="gray.100">
           <EnhancedPDFViewer
             documentId={documentId!}
-            documentUrl={documentUrl}
+            documentUrl={pdfSrc}
             onPageChange={setCurrentPage}
           />
         </Box>
