@@ -15,7 +15,6 @@ import { FiChevronLeft, FiChevronRight, FiZoomIn, FiZoomOut } from 'react-icons/
 import * as pdfjsLib from 'pdfjs-dist';
 import AnnotationToolbar from './AnnotationToolbar';
 import AnnotationLayer from './AnnotationLayer';
-import { FormLayer } from './FormLayer';
 import { useAnnotationStore } from '../store/annotation.store';
 import { useTextSelection } from '../hooks/useTextSelection';
 
@@ -50,6 +49,7 @@ export default function EnhancedPDFViewer({
     createAnnotation,
     deleteAnnotation,
     setSelectedTool,
+    selectedSignature
   } = useAnnotationStore();
 
   const { selection, clearSelection } = useTextSelection(containerRef);
@@ -189,6 +189,22 @@ export default function EnhancedPDFViewer({
   const handleCanvasClick = async (e: React.MouseEvent<HTMLDivElement>) => {
     if (!selectedTool || selectedTool === 'select' || selectedTool === 'highlight') return;
     if (!canvasRef.current) return;
+
+    if (selectedTool === 'signature') {
+      if (!selectedSignature) {
+        toast({ title: 'No signature selected', description: 'Please create or select a signature first.', status: 'warning' });
+        return;
+      }
+      // Create signature annotation
+      const position = { /* ... calculate position ... */ };
+      await createAnnotation(documentId, {
+        type: 'signature',
+        pageNumber: currentPage,
+        position,
+        content: selectedSignature, // Store data URL in content
+      });
+      return;
+    }
 
     const canvasRect = canvasRef.current.getBoundingClientRect();
     const x = (e.clientX - canvasRect.left) / scale;
@@ -357,23 +373,12 @@ export default function EnhancedPDFViewer({
             style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
           />
 
-import { FormLayer } from './FormLayer';
-
-// ...
-
           {/* Annotation Layer */}
           <AnnotationLayer
             annotations={annotations}
             pageNumber={currentPage}
             scale={scale}
             onDeleteAnnotation={handleDeleteAnnotation}
-          />
-
-          {/* Form Layer */}
-          <FormLayer 
-            pdfDoc={pdfDoc} 
-            pageNumber={currentPage} 
-            scale={scale} 
           />
         </Box>
       </Box>

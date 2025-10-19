@@ -3,6 +3,8 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import websocket from '@fastify/websocket';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import { env } from './config/env.js';
 import { logger } from './utils/logger.js';
 import pool from './config/database.js';
@@ -47,24 +49,89 @@ fastify.setErrorHandler((error, request, reply) => {
   });
 });
 
-// Register plugins
+// Register security plugins
+// Helmet - Security headers
+await fastify.register(helmet, {
+  // Customize Content Security Policy for the app
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for Chakra UI
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", env.CORS_ORIGIN],
+      fontSrc: ["'self'", 'data:'],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  // Enable other security headers
+  crossOriginEmbedderPolicy: false, // PDF.js requires this to be false
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true,
+  },
+});
+
+// Rate limiting - Global rate limit
+await fastify.register(rateLimit, {
+  max: 100, // Maximum requests per time window
+  timeWindow: '1 minute',
+  cache: 10000, // Cache size for storing request counts
+  allowList: ['127.0.0.1'], // Whitelist localhost for development
+  redis: env.NODE_ENV === 'production' ? undefined : undefined, // Can add Redis for distributed rate limiting
+  skipOnError: false, // Don't skip rate limiting on errors
+  keyGenerator: (request) => {
+    // Use IP address or user ID for rate limiting
+    return request.userId || request.ip;
+  },
+  errorResponseBuilder: () => {
+    return {
+      error: 'Too Many Requests',
+      message: 'You have exceeded the rate limit. Please try again later.',
+      statusCode: 429,
+    };
+  },
+});
+
+// CORS - Cross-Origin Resource Sharing
 await fastify.register(cors, {
   origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Length', 'X-Request-Id'],
+  maxAge: 86400, // 24 hours
 });
 
+// JWT Authentication
 await fastify.register(jwt, {
   secret: env.JWT_SECRET,
+  sign: {
+    expiresIn: '7d', // Access token expiry
+  },
 });
 
+// Multipart form data (file uploads)
 await fastify.register(multipart, {
   limits: {
     fileSize: env.MAX_FILE_SIZE,
     files: 1,
+    fields: 10,
   },
+  attachFieldsToBody: false,
 });
 
-await fastify.register(websocket);
+// WebSocket support
+await fastify.register(websocket, {
+  options: {
+    maxPayload: 1048576, // 1MB max message size
+    clientTracking: true,
+  },
+});
 
 // Health check
 fastify.get('/health', async (_request, reply) => {

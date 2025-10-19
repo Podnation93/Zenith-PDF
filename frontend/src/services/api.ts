@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AuthResponse, User, Document, Annotation, Comment } from '../types';
+import { retryRequest, getErrorMessage, isRetryableError } from '../utils/apiRetry';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -9,7 +10,11 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 second timeout
 });
+
+// Track retry attempts for logging
+let retryCount = 0;
 
 // Request interceptor to add auth token
 api.interceptors.request.use((config) => {
@@ -20,12 +25,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor to handle token refresh
+// Response interceptor to handle token refresh and errors
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 401 Unauthorized - Token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -54,9 +60,40 @@ api.interceptors.response.use(
       }
     }
 
-    return Promise.reject(error);
+    // Enhance error with user-friendly message
+    const enhancedError = {
+      ...error,
+      userMessage: getErrorMessage(error),
+      isRetryable: isRetryableError(error),
+    };
+
+    return Promise.reject(enhancedError);
   }
 );
+
+/**
+ * Wrapper for API calls with automatic retry logic for non-critical operations
+ * @param requestFn - Function that returns a Promise
+ * @param options - Retry options
+ * @returns Promise with the request result
+ */
+export async function apiCallWithRetry<T>(
+  requestFn: () => Promise<T>,
+  options?: {
+    maxRetries?: number;
+    retryDelay?: number;
+  }
+): Promise<T> {
+  return retryRequest(requestFn, {
+    maxRetries: options?.maxRetries ?? 3,
+    retryDelay: options?.retryDelay ?? 1000,
+    onRetry: (attempt, error) => {
+      if (import.meta.env.DEV) {
+        console.log(`Retrying API call (attempt ${attempt}):`, error.config?.url);
+      }
+    },
+  });
+}
 
 // Auth API
 export const authApi = {
@@ -108,18 +145,24 @@ export const documentApi = {
   },
 
   getAll: async (): Promise<Document[]> => {
-    const response = await api.get<{ documents: Document[] }>('/documents');
-    return response.data.documents;
+    return apiCallWithRetry(async () => {
+      const response = await api.get<{ documents: Document[] }>('/documents');
+      return response.data.documents;
+    });
   },
 
   getById: async (documentId: string): Promise<Document> => {
-    const response = await api.get<{ document: Document }>(`/documents/${documentId}`);
-    return response.data.document;
+    return apiCallWithRetry(async () => {
+      const response = await api.get<{ document: Document }>(`/documents/${documentId}`);
+      return response.data.document;
+    });
   },
 
   getDownloadUrl: async (documentId: string): Promise<string> => {
-    const response = await api.get<{ url: string }>(`/documents/${documentId}/download`);
-    return response.data.url;
+    return apiCallWithRetry(async () => {
+      const response = await api.get<{ url: string }>(`/documents/${documentId}/download`);
+      return response.data.url;
+    });
   },
 
   delete: async (documentId: string): Promise<void> => {

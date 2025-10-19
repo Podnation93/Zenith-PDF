@@ -6,6 +6,7 @@ import {
   ConflictError,
   ValidationError,
 } from '../utils/errors.js';
+import { validatePasswordOrThrow } from '../utils/password-validator.js';
 import type { User, LoginRequest, RegisterRequest } from '../types/index.js';
 
 export class AuthService {
@@ -18,10 +19,23 @@ export class AuthService {
       throw new ValidationError('Invalid email format');
     }
 
-    // Validate password strength
-    if (password.length < 8) {
-      throw new ValidationError('Password must be at least 8 characters');
-    }
+    // Validate password strength with comprehensive checks
+    // Include user inputs to prevent passwords containing personal info
+    const userInputs = [
+      email,
+      email.split('@')[0], // username part of email
+      firstName || '',
+      lastName || '',
+    ].filter(Boolean);
+
+    validatePasswordOrThrow(password, userInputs, {
+      minLength: 8,
+      requireUppercase: true,
+      requireLowercase: true,
+      requireNumbers: true,
+      requireSpecialChars: true,
+      minScore: 3, // Require strong password (3-4 scale)
+    });
 
     // Check if user already exists
     const existingUser = await pool.query(
