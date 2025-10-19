@@ -41,4 +41,3 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
         getPath: (name) => electron_1.ipcRenderer.invoke('app:get-path', name),
     },
 });
-//# sourceMappingURL=preload.js.map

@@ -44,17 +44,23 @@ const fs_1 = require("fs");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 // __dirname is automatically available in CommonJS
-// Database setup
-const userDataPath = electron_1.app.getPath('userData');
-const dbPath = node_path_1.default.join(userDataPath, 'zenith.db');
-const documentsPath = node_path_1.default.join(userDataPath, 'documents');
-// Ensure directories exist
-if (!(0, fs_1.existsSync)(documentsPath)) {
-    (0, fs_1.mkdirSync)(documentsPath, { recursive: true });
-}
-const db = new better_sqlite3_1.default(dbPath);
+// Database setup - will be initialized when app is ready
+let userDataPath;
+let dbPath;
+let documentsPath;
+let db;
 // JWT secret (in production, store securely or generate per-install)
 const JWT_SECRET = process.env.JWT_SECRET || 'zenith-pdf-desktop-secret-key';
+function initializePaths() {
+    userDataPath = electron_1.app.getPath('userData');
+    dbPath = node_path_1.default.join(userDataPath, 'zenith.db');
+    documentsPath = node_path_1.default.join(userDataPath, 'documents');
+    // Ensure directories exist
+    if (!(0, fs_1.existsSync)(documentsPath)) {
+        (0, fs_1.mkdirSync)(documentsPath, { recursive: true });
+    }
+    db = new better_sqlite3_1.default(dbPath);
+}
 // Initialize database schema
 function initializeDatabase() {
     db.exec(`
@@ -169,6 +175,7 @@ function createWindow() {
 }
 // App lifecycle
 electron_1.app.whenReady().then(() => {
+    initializePaths();
     initializeDatabase();
     createWindow();
     electron_1.app.on('activate', () => {
@@ -567,4 +574,3 @@ electron_1.ipcMain.handle('app:get-path', (event, name) => {
     }
     return electron_1.app.getPath(name);
 });
-//# sourceMappingURL=main.js.map

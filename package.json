@@ -2,7 +2,7 @@
   "name": "zenith-pdf",
   "version": "2.0.0",
   "description": "Free & Open-Source Offline PDF Annotation Desktop App",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/index.js",
   "author": "Zenith PDF Team",
   "license": "MIT",
   "repository": {
@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:electron": "electron . --enable-logging",
+    "dev:electron": "cross-env NODE_ENV=development electron . --enable-logging",
     "electron:dev": "cross-env NODE_ENV=development electron .",
     "build": "npm run build:frontend && npm run build:electron",
     "build:frontend": "cd frontend && npm run build",

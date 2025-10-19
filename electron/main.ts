@@ -8,20 +8,27 @@ import jwt from 'jsonwebtoken';
 
 // __dirname is automatically available in CommonJS
 
-// Database setup
-const userDataPath = app.getPath('userData');
-const dbPath = path.join(userDataPath, 'zenith.db');
-const documentsPath = path.join(userDataPath, 'documents');
-
-// Ensure directories exist
-if (!existsSync(documentsPath)) {
-  mkdirSync(documentsPath, { recursive: true });
-}
-
-const db = new Database(dbPath);
+// Database setup - will be initialized when app is ready
+let userDataPath: string;
+let dbPath: string;
+let documentsPath: string;
+let db: Database.Database;
 
 // JWT secret (in production, store securely or generate per-install)
 const JWT_SECRET = process.env.JWT_SECRET || 'zenith-pdf-desktop-secret-key';
+
+function initializePaths() {
+  userDataPath = app.getPath('userData');
+  dbPath = path.join(userDataPath, 'zenith.db');
+  documentsPath = path.join(userDataPath, 'documents');
+
+  // Ensure directories exist
+  if (!existsSync(documentsPath)) {
+    mkdirSync(documentsPath, { recursive: true });
+  }
+
+  db = new Database(dbPath);
+}
 
 // Initialize database schema
 function initializeDatabase() {
@@ -141,6 +148,7 @@ function createWindow() {
 
 // App lifecycle
 app.whenReady().then(() => {
+  initializePaths();
   initializeDatabase();
   createWindow();
 
