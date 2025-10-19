@@ -18,7 +18,7 @@ import { FiArrowLeft, FiShare2, FiDownload } from 'react-icons/fi';
 import { useAuthStore } from '../store/auth.store';
 import { useDocumentStore } from '../store/document.store';
 import { websocketService } from '../services/websocket';
-import PDFViewer from '../components/PDFViewer';
+import EnhancedPDFViewer from '../components/EnhancedPDFViewer';
 
 export default function DocumentViewer() {
   const { documentId } = useParams<{ documentId: string }>();
@@ -143,7 +143,8 @@ export default function DocumentViewer() {
       <Flex flex="1" overflow="hidden">
         {/* PDF Viewer Area */}
         <Box flex="1" bg="gray.100">
-          <PDFViewer
+          <EnhancedPDFViewer
+            documentId={documentId!}
             documentUrl={documentUrl}
             onPageChange={setCurrentPage}
           />
