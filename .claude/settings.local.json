@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(docker --version)",
+      "Bash(docker-compose --version)",
+      "Bash(npm install --no-optional)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
