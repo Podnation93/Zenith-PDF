@@ -23,23 +23,20 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 
 interface EnhancedPDFViewerProps {
   documentId: string;
-  documentUrl: string;
+  pdfDoc: pdfjsLib.PDFDocumentProxy | null;
   onPageChange?: (page: number) => void;
 }
 
 export default function EnhancedPDFViewer({
   documentId,
-  documentUrl,
+  pdfDoc,
   onPageChange,
 }: EnhancedPDFViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(0);
   const [scale, setScale] = useState(1.5);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
   const toast = useToast();
 
@@ -55,36 +52,11 @@ export default function EnhancedPDFViewer({
 
   const { selection, clearSelection } = useTextSelection(containerRef);
 
-  // Load PDF document
   useEffect(() => {
-    const loadPDF = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const loadingTask = pdfjsLib.getDocument(documentUrl);
-        const pdf = await loadingTask.promise;
-
-        setPdfDoc(pdf);
-        setNumPages(pdf.numPages);
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Error loading PDF:', err);
-        setError('Failed to load PDF document');
-        setIsLoading(false);
-      }
-    };
-
-    if (documentUrl) {
-      loadPDF();
+    if (pdfDoc) {
+      setNumPages(pdfDoc.numPages);
     }
-
-    return () => {
-      if (pdfDoc) {
-        pdfDoc.destroy();
-      }
-    };
-  }, [documentUrl]);
+  }, [pdfDoc]);
 
   // Load annotations
   useEffect(() => {
@@ -297,31 +269,7 @@ export default function EnhancedPDFViewer({
     setScale(Math.max(scale - 0.25, 0.5));
   };
 
-  if (isLoading) {
-    return (
-      <Center h="full">
-        <VStack spacing={4}>
-          <Spinner size="xl" color="brand.500" thickness="4px" />
-          <Text color="gray.600">Loading PDF...</Text>
-        </VStack>
-      </Center>
-    );
-  }
 
-  if (error) {
-    return (
-      <Center h="full">
-        <VStack spacing={4}>
-          <Text color="red.500" fontSize="lg">
-            {error}
-          </Text>
-          <Button colorScheme="brand" onClick={() => window.location.reload()}>
-            Retry
-          </Button>
-        </VStack>
-      </Center>
-    );
-  }
 
   return (
     <Box h="full" display="flex" flexDirection="column">

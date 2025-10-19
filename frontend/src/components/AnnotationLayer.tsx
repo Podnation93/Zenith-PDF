@@ -140,6 +140,23 @@ export default function AnnotationLayer({
               </Box>
             )}
 
+{/* ... other annotation types ... */}
+
+            {/* Shape & Line Annotations */}
+            {['underline', 'strikethrough', 'rectangle', 'ellipse', 'arrow', 'freehand'].includes(annotation.type) && (
+              <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
+                {
+                  {
+                    underline: <line x1="0" y1="100%" x2="100%" y2="100%" stroke={annotation.color} strokeWidth={annotation.strokeWidth} />,
+                    strikethrough: <line x1="0" y1="50%" x2="100%" y2="50%" stroke={annotation.color} strokeWidth={annotation.strokeWidth} />,
+                    rectangle: <rect width="100%" height="100%" fill="none" stroke={annotation.color} strokeWidth={annotation.strokeWidth} opacity={annotation.opacity} />,
+                    ellipse: <ellipse cx="50%" cy="50%" rx="50%" ry="50%" fill="none" stroke={annotation.color} strokeWidth={annotation.strokeWidth} opacity={annotation.opacity} />,
+                    // ... other shapes would go here
+                  }[annotation.type]
+                }
+              </svg>
+            )}
+
             {/* Delete button for selected annotation */}
             {isSelected && (
               <IconButton
