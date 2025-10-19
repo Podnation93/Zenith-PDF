@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { authApi } from '../services/api';
-import type { User, AuthResponse } from '../types';
+import { authApi } from '../services/electron-api';
+import type { User } from '../types';
 
 interface AuthState {
   user: User | null;
@@ -30,19 +30,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response: AuthResponse = await authApi.login({ email, password });
+      const { user, token } = await authApi.login({ email, password });
 
-      localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.setItem('authToken', token);
 
       set({
-        user: response.user,
+        user,
         isAuthenticated: true,
         isLoading: false,
       });
     } catch (error: any) {
       set({
-        error: error.response?.data?.error || 'Login failed',
+        error: error.message || 'Login failed',
         isLoading: false,
       });
       throw error;
@@ -52,19 +51,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   register: async (data) => {
     set({ isLoading: true, error: null });
     try {
-      const response: AuthResponse = await authApi.register(data);
+      const { user, token } = await authApi.register(data);
 
-      localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.setItem('authToken', token);
 
       set({
-        user: response.user,
+        user,
         isAuthenticated: true,
         isLoading: false,
       });
     } catch (error: any) {
       set({
-        error: error.response?.data?.error || 'Registration failed',
+        error: error.message || 'Registration failed',
         isLoading: false,
       });
       throw error;
@@ -73,19 +71,18 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
-      await authApi.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
+      localStorage.removeItem('authToken');
       set({
         user: null,
         isAuthenticated: false,
       });
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   },
 
   loadUser: async () => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('authToken');
     if (!token) {
       set({ isAuthenticated: false, isLoading: false });
       return;
@@ -93,15 +90,14 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     set({ isLoading: true });
     try {
-      const user = await authApi.getMe();
+      const user = await authApi.verify(token);
       set({
         user,
         isAuthenticated: true,
         isLoading: false,
       });
     } catch (error) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('authToken');
       set({
         user: null,
         isAuthenticated: false,
@@ -112,11 +108,14 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   updateProfile: async (data) => {
     try {
-      const user = await authApi.updateProfile(data);
-      set({ user });
+      // For desktop app, profile updates would need to be implemented
+      // Currently just update local state
+      set((state) => ({
+        user: state.user ? { ...state.user, ...data } : null,
+      }));
     } catch (error: any) {
       set({
-        error: error.response?.data?.error || 'Profile update failed',
+        error: error.message || 'Profile update failed',
       });
       throw error;
     }
