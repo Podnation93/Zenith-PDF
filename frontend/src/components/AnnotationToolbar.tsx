@@ -1,41 +1,12 @@
 import {
-  Box,
-  HStack,
-  IconButton,
-  Tooltip,
-  Divider,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Button,
-  Icon,
-  useColorModeValue,
-  VStack,
-  Text,
-  Slider,
-  SliderTrack,
-  SliderFilledTrack,
-  SliderThumb,
-  Spacer,
-  InputGroup,
-  InputLeftElement,
-  Input,
+  // ...
+  Image,
 } from '@chakra-ui/react';
 import {
-  FiMousePointer,
-  FiEdit3,
-  FiMessageSquare,
-  FiFileText,
-  FiChevronDown,
-  FiUnderline,
-  FiMinusSquare,
-  FiPenTool,
-  FiSquare,
-  FiArrowUpRight,
-  FiCircle,
-  FiSearch,
+  // ...
+  FiEdit,
 } from 'react-icons/fi';
+import { useSignatureStore } from '../store/signature.store';
 import { useSearchStore } from '../store/search.store';
 import { useAnnotationStore } from '../store/annotation.store';
 
@@ -168,39 +139,48 @@ export default function AnnotationToolbar() {
           />
         </Tooltip>
 
+import { useSignatureStore } from '../store/signature.store';
+
+// ...
+
+export default function AnnotationToolbar({ onOpenSignatureModal }) {
+  // ...
+  const { signatures, deleteSignature } = useSignatureStore();
+
+  // ...
+
         {/* Sticky Note Tool */}
-        <Tooltip label="Sticky note (S)" placement="bottom">
-          <IconButton
-            aria-label="Sticky note tool"
-            icon={<Icon as={FiFileText} />}
-            size="md"
-            variant={selectedTool === 'sticky_note' ? 'solid' : 'ghost'}
-            colorScheme={selectedTool === 'sticky_note' ? 'brand' : 'gray'}
-            onClick={() => handleToolClick('sticky_note')}
-          />
-        </Tooltip>
+        // ...
+
+        <Divider orientation="vertical" h="30px" />
+
+        {/* Signature Tool */}
+        <Menu>
+          <Tooltip label="Add Signature" placement="bottom">
+            <MenuButton as={IconButton} icon={<FiEdit />} />
+          </Tooltip>
+          <MenuList>
+            {signatures.map((sig, index) => (
+              <MenuItem key={index} onClick={() => setSelectedTool('signature')}>
+                <Image src={sig} h="30px" />
+                <Spacer />
+                <IconButton 
+                  icon={<FiTrash2 />} 
+                  size="xs" 
+                  aria-label="Delete signature" 
+                  onClick={(e) => { e.stopPropagation(); deleteSignature(index); }} 
+                />
+              </MenuItem>
+            ))}
+            <MenuItem onClick={onOpenSignatureModal}>+ Add New Signature</MenuItem>
+          </MenuList>
+        </Menu>
 
         <Divider orientation="vertical" h="30px" />
 
         {/* New Shape & Drawing Tools */}
-        <Tooltip label="Underline" placement="bottom">
-          <IconButton aria-label="Underline tool" icon={<FiUnderline />} onClick={() => handleToolClick('underline')} variant={selectedTool === 'underline' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'underline' ? 'brand' : 'gray'} />
-        </Tooltip>
-        <Tooltip label="Strikethrough" placement="bottom">
-          <IconButton aria-label="Strikethrough tool" icon={<FiMinusSquare />} onClick={() => handleToolClick('strikethrough')} variant={selectedTool === 'strikethrough' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'strikethrough' ? 'brand' : 'gray'} />
-        </Tooltip>
-        <Tooltip label="Freehand" placement="bottom">
-          <IconButton aria-label="Freehand tool" icon={<FiPenTool />} onClick={() => handleToolClick('freehand')} variant={selectedTool === 'freehand' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'freehand' ? 'brand' : 'gray'} />
-        </Tooltip>
-        <Tooltip label="Rectangle" placement="bottom">
-          <IconButton aria-label="Rectangle tool" icon={<FiSquare />} onClick={() => handleToolClick('rectangle')} variant={selectedTool === 'rectangle' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'rectangle' ? 'brand' : 'gray'} />
-        </Tooltip>
-        <Tooltip label="Arrow" placement="bottom">
-          <IconButton aria-label="Arrow tool" icon={<FiArrowUpRight />} onClick={() => handleToolClick('arrow')} variant={selectedTool === 'arrow' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'arrow' ? 'brand' : 'gray'} />
-        </Tooltip>
-        <Tooltip label="Ellipse" placement="bottom">
-          <IconButton aria-label="Ellipse tool" icon={<FiCircle />} onClick={() => handleToolClick('ellipse')} variant={selectedTool === 'ellipse' ? 'solid' : 'ghost'} colorScheme={selectedTool === 'ellipse' ? 'brand' : 'gray'} />
-        </Tooltip>
+        // ...
+
 
         <Divider orientation="vertical" h="30px" />
 

@@ -123,61 +123,24 @@ export default function DocumentViewer() {
         </Flex>
       </Box>
 
-      <Flex flex="1" overflow="hidden">
-        {isThumbSidebarOpen && <PageThumbnailSidebar pdfDoc={pdfDoc} onPageSelect={handlePageSelect} documentId={documentId!} />}
-        
-        <Box flex="1" bg="gray.100">
-          <EnhancedPDFViewer
-            documentId={documentId!}
-            pdfDoc={pdfDoc}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-          />
-        </Box>
-
-        <Box w="350px" borderLeft="1px solid" borderColor="gray.200" bg="white" display="flex" flexDirection="column">
-import { useSearchStore } from '../store/search.store';
-import { SearchResultsSidebar } from '../components/SearchResultsSidebar';
+import { SignatureModal } from '../components/SignatureModal';
 
 // ...
 
 export default function DocumentViewer() {
   // ...
-  const { query, search } = useSearchStore();
-
-  useEffect(() => {
-    if (query && pdfDoc) {
-      search(pdfDoc);
-    }
-  }, [query, pdfDoc, search]);
-
-  const handleSearchResultClick = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
-    // Also, we would need to highlight the result on the page.
-  };
+  const { isOpen: isSigOpen, onOpen: onSigOpen, onClose: onSigClose } = useDisclosure();
 
   // ...
 
-          <Tabs isFitted variant="enclosed" h="100%" display="flex" flexDirection="column">
-            <TabList>
-              <Tab>Comments</Tab>
-              <Tab>Activity</Tab>
-              <Tab>Search</Tab>
-            </TabList>
-            <TabPanels flex="1" overflowY="auto">
-              <TabPanel h="100%"><CommentPanel /></TabPanel>
-              <TabPanel h="100%"><ActivityFeedSidebar /></TabPanel>
-              <TabPanel h="100%"><SearchResultsSidebar onResultClick={handleSearchResultClick} /></TabPanel>
-            </TabPanels>
-          </Tabs>
-        </Box>
-
-  // ...
-}
-
+      <Flex flex="1" overflow="hidden">
+        // ...
       </Flex>
 
       {isSharingOpen && <SharingModal documentId={documentId!} isOpen={isSharingOpen} onClose={onSharingClose} />}
+      <SignatureModal isOpen={isSigOpen} onClose={onSigClose} />
     </Box>
+  );
+}
   );
 }
