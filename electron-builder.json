@@ -8,7 +8,7 @@
   },
   "files": [
     "dist-electron/**/*",
-    "frontend/dist/**/*",
+    "frontend-new/dist/**/*",
     "package.json"
   ],
   "extraResources": [

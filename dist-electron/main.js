@@ -183,7 +183,7 @@ function createWindow() {
     }
     else {
         // In production, load built files
-        mainWindow.loadFile(node_path_1.default.join(__dirname, '../dist/index.html'));
+        mainWindow.loadFile(node_path_1.default.join(__dirname, '../frontend-new/dist/index.html'));
     }
     mainWindow.on('closed', () => {
         mainWindow = null;
