@@ -1,0 +1,201 @@
+{
+  "appId": "com.zenithpdf.desktop",
+  "productName": "Zenith PDF",
+  "copyright": "Copyright © 2025 Zenith PDF Team",
+  "directories": {
+    "output": "release",
+    "buildResources": "resources"
+  },
+  "files": [
+    "dist-electron/**/*",
+    "frontend/dist/**/*",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "resources",
+      "to": "resources",
+      "filter": [
+        "**/*"
+      ]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64",
+          "ia32"
+        ]
+      },
+      {
+        "target": "portable",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "resources/icon.ico",
+    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "publisherName": "Zenith PDF Team",
+    "verifyUpdateCodeSignature": false
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "resources/icon.ico",
+    "uninstallerIcon": "resources/icon.ico",
+    "installerHeaderIcon": "resources/icon.ico",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Zenith PDF",
+    "perMachine": false,
+    "deleteAppDataOnUninstall": false,
+    "runAfterFinish": true,
+    "license": "LICENSE"
+  },
+  "portable": {
+    "artifactName": "${productName}-Portable-${version}.${ext}"
+  },
+  "mac": {
+    "target": [
+      {
+        "target": "dmg",
+        "arch": [
+          "x64",
+          "arm64",
+          "universal"
+        ]
+      },
+      {
+        "target": "zip",
+        "arch": [
+          "universal"
+        ]
+      }
+    ],
+    "icon": "resources/icon.icns",
+    "category": "public.app-category.productivity",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "resources/entitlements.mac.plist",
+    "entitlementsInherit": "resources/entitlements.mac.plist",
+    "darkModeSupport": true,
+    "type": "distribution",
+    "minimumSystemVersion": "10.13"
+  },
+  "dmg": {
+    "contents": [
+      {
+        "x": 130,
+        "y": 220
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ],
+    "window": {
+      "width": 540,
+      "height": 380
+    },
+    "backgroundColor": "#ffffff",
+    "icon": "resources/icon.icns",
+    "iconSize": 128,
+    "title": "Install ${productName}"
+  },
+  "linux": {
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      },
+      {
+        "target": "deb",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      },
+      {
+        "target": "rpm",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      }
+    ],
+    "icon": "resources/icons",
+    "category": "Office",
+    "artifactName": "${name}-${version}-${arch}.${ext}",
+    "synopsis": "Free & Open-Source PDF Annotation Desktop App",
+    "description": "Zenith PDF is a privacy-first, offline PDF annotation desktop application. All your documents stay on your computer - no cloud, no servers, complete privacy.",
+    "desktop": {
+      "Name": "Zenith PDF",
+      "GenericName": "PDF Annotator",
+      "Comment": "Annotate and edit PDF documents",
+      "Type": "Application",
+      "Categories": "Office;Viewer;",
+      "MimeType": "application/pdf;",
+      "Keywords": "pdf;annotation;editor;viewer;",
+      "StartupWMClass": "zenith-pdf"
+    },
+    "executableName": "zenith-pdf",
+    "maintainer": "Zenith PDF Team <support@zenithpdf.com>"
+  },
+  "appImage": {
+    "license": "LICENSE",
+    "artifactName": "${productName}-${version}-${arch}.${ext}"
+  },
+  "deb": {
+    "depends": [
+      "gconf2",
+      "gconf-service",
+      "libnotify4",
+      "libappindicator1",
+      "libxtst6",
+      "libnss3"
+    ],
+    "afterInstall": "build/after-install.sh",
+    "afterRemove": "build/after-remove.sh"
+  },
+  "rpm": {
+    "depends": [
+      "libXScrnSaver",
+      "libappindicator",
+      "libnotify"
+    ],
+    "afterInstall": "build/after-install.sh",
+    "afterRemove": "build/after-remove.sh"
+  },
+  "publish": null,
+  "compression": "maximum",
+  "asar": true,
+  "asarUnpack": [
+    "**/*.node"
+  ],
+  "fileAssociations": [
+    {
+      "ext": "pdf",
+      "name": "PDF Document",
+      "role": "Viewer",
+      "icon": "resources/pdf-icon.icns"
+    }
+  ],
+  "protocols": [
+    {
+      "name": "zenith-pdf",
+      "schemes": [
+        "zenith-pdf"
+      ]
+    }
+  ]
+}

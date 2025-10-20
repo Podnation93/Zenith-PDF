@@ -1,6 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Center, Flex, Heading, IconButton, Spinner, Text, VStack, Icon, HStack, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel } from '@chakra-ui/react';
+import {
+  Box,
+  Button,
+  Center,
+  Flex,
+  Heading,
+  IconButton,
+  Spinner,
+  HStack,
+  useDisclosure,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+} from '@chakra-ui/react';
 import { FiArrowLeft, FiShare2, FiDownload, FiMenu } from 'react-icons/fi';
 import * as pdfjsLib from 'pdfjs-dist';
 import { useAuthStore } from '../store/auth.store';
@@ -16,6 +31,7 @@ import { CommentPanel } from '../components/CommentPanel';
 import { PresenceAvatarGroup } from '../components/PresenceAvatarGroup';
 import { exportPdfWithAnnotations } from '../services/pdfExporter';
 import { SharingModal } from '../components/SharingModal';
+import { SignatureModal } from '../components/SignatureModal';
 import { ActivityFeedSidebar } from '../components/ActivityFeedSidebar';
 import { PageThumbnailSidebar } from '../components/PageThumbnailSidebar';
 
@@ -29,12 +45,14 @@ export default function DocumentViewer() {
   const { initialize: initActivityListeners } = useActivityStore();
   const { pages, initializePages } = usePageStore();
   const { isOpen: isSharingOpen, onOpen: onSharingOpen, onClose: onSharingClose } = useDisclosure();
+  const { isOpen: isSigOpen, onOpen: onSigOpen, onClose: onSigClose } = useDisclosure();
 
   const [wsConnected, setWsConnected] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pdfSrc, setPdfSrc] = useState<string | null>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [isThumbSidebarOpen, setThumbSidebarOpen] = useState(false);
+  const [isActivitySidebarOpen, setActivitySidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!documentId) {
@@ -83,7 +101,7 @@ export default function DocumentViewer() {
   useEffect(() => {
     if (!pdfSrc) return;
     const loadingTask = pdfjsLib.getDocument(pdfSrc);
-    loadingTask.promise.then(pdf => {
+    loadingTask.promise.then((pdf) => {
       setPdfDoc(pdf);
       initializePages(pdf.numPages);
     });
@@ -103,44 +121,91 @@ export default function DocumentViewer() {
   };
 
   if (isDocLoading || !pdfDoc) {
-    return <Center minH="100vh"><Spinner size="xl" /></Center>;
+    return (
+      <Center minH="100vh">
+        <Spinner size="xl" />
+      </Center>
+    );
   }
 
   return (
     <Box h="100vh" display="flex" flexDirection="column">
+      {/* Header */}
       <Box bg="white" shadow="sm" borderBottom="1px" borderColor="gray.200">
         <Flex px={4} py={2} align="center" justify="space-between">
           <HStack spacing={2}>
-            <IconButton icon={<FiMenu />} aria-label="Toggle Pages" onClick={() => setThumbSidebarOpen(!isThumbSidebarOpen)} />
-            <IconButton icon={<FiArrowLeft />} aria-label="Back to dashboard" onClick={() => navigate('/dashboard')} />
-            <Heading size="sm" noOfLines={1}>{currentDocument?.originalFilename}</Heading>
+            <IconButton
+              icon={<FiMenu />}
+              aria-label="Toggle Pages"
+              onClick={() => setThumbSidebarOpen(!isThumbSidebarOpen)}
+            />
+            <IconButton
+              icon={<FiArrowLeft />}
+              aria-label="Back to dashboard"
+              onClick={() => navigate('/dashboard')}
+            />
+            <Heading size="sm" noOfLines={1}>
+              {currentDocument?.originalFilename}
+            </Heading>
           </HStack>
           <HStack spacing={4}>
             <PresenceAvatarGroup />
-            <Button leftIcon={<FiShare2 />} size="sm" onClick={onSharingOpen}>Share</Button>
-            <Button leftIcon={<FiDownload />} size="sm" colorScheme="blue" onClick={handleExport}>Export</Button>
+            <Button leftIcon={<FiShare2 />} size="sm" onClick={onSharingOpen}>
+              Share
+            </Button>
+            <Button leftIcon={<FiDownload />} size="sm" colorScheme="blue" onClick={handleExport}>
+              Export
+            </Button>
           </HStack>
         </Flex>
       </Box>
 
-import { SignatureModal } from '../components/SignatureModal';
-
-// ...
-
-export default function DocumentViewer() {
-  // ...
-  const { isOpen: isSigOpen, onOpen: onSigOpen, onClose: onSigClose } = useDisclosure();
-
-  // ...
-
+      {/* Main Content */}
       <Flex flex="1" overflow="hidden">
-        // ...
+        {/* Page Thumbnails Sidebar */}
+        {isThumbSidebarOpen && (
+          <Box w="200px" borderRight="1px" borderColor="gray.200" overflow="auto">
+            <PageThumbnailSidebar
+              pdfDoc={pdfDoc}
+              currentPage={currentPage}
+              onPageSelect={handlePageSelect}
+            />
+          </Box>
+        )}
+
+        {/* PDF Viewer */}
+        <Box flex="1" overflow="auto" position="relative">
+          <EnhancedPDFViewer pdfDoc={pdfDoc} currentPage={currentPage} />
+        </Box>
+
+        {/* Comments/Activity Sidebar */}
+        <Box w="350px" borderLeft="1px" borderColor="gray.200" bg="gray.50">
+          <Tabs>
+            <TabList>
+              <Tab>Comments</Tab>
+              <Tab>Activity</Tab>
+            </TabList>
+            <TabPanels>
+              <TabPanel p={0}>
+                <CommentPanel documentId={documentId!} />
+              </TabPanel>
+              <TabPanel p={0}>
+                <ActivityFeedSidebar documentId={documentId!} />
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
+        </Box>
       </Flex>
 
-      {isSharingOpen && <SharingModal documentId={documentId!} isOpen={isSharingOpen} onClose={onSharingClose} />}
+      {/* Modals */}
+      {isSharingOpen && (
+        <SharingModal
+          documentId={documentId!}
+          isOpen={isSharingOpen}
+          onClose={onSharingClose}
+        />
+      )}
       <SignatureModal isOpen={isSigOpen} onClose={onSigClose} />
     </Box>
-  );
-}
   );
 }

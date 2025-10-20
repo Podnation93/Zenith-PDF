@@ -1,10 +1,17 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, session } from 'electron';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import fs from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import {
+  validatePasswordStrength,
+  RateLimiter,
+  InputSanitizer,
+} from './security';
+import { AutoSaveManager, registerAutoSaveHandlers } from './autosave';
+import { PDFExportService } from './pdfExport';
 
 // __dirname is automatically available in CommonJS
 
@@ -16,6 +23,16 @@ let db: Database.Database;
 
 // JWT secret (in production, store securely or generate per-install)
 const JWT_SECRET = process.env.JWT_SECRET || 'zenith-pdf-desktop-secret-key';
+
+// Initialize rate limiters
+const loginRateLimiter = new RateLimiter(5, 15); // 5 attempts per 15 minutes
+const registerRateLimiter = new RateLimiter(3, 60); // 3 attempts per hour
+
+// Auto-save manager - will be initialized when database is ready
+let autoSaveManager: AutoSaveManager;
+
+// PDF export service - will be initialized when database is ready
+let pdfExportService: PDFExportService;
 
 function initializePaths() {
   userDataPath = app.getPath('userData');
@@ -127,6 +144,12 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      experimentalFeatures: false,
+      enableBlinkFeatures: '',
+      disableBlinkFeatures: '',
     },
     icon: path.join(__dirname, '../resources/icon.png'),
     title: 'Zenith PDF - Desktop',
@@ -150,6 +173,32 @@ function createWindow() {
 app.whenReady().then(() => {
   initializePaths();
   initializeDatabase();
+
+  // Initialize auto-save manager
+  autoSaveManager = new AutoSaveManager(db, {
+    intervalMs: 5000, // Auto-save every 5 seconds
+    enabled: true,
+  });
+  autoSaveManager.start();
+  registerAutoSaveHandlers(autoSaveManager);
+
+  // Initialize PDF export service
+  pdfExportService = new PDFExportService(db, documentsPath);
+
+  // Set up Content Security Policy
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          process.env.NODE_ENV === 'development'
+            ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* ws://localhost:*; img-src 'self' data: blob:; font-src 'self' data:;"
+            : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:;",
+        ],
+      },
+    });
+  });
+
   createWindow();
 
   app.on('activate', () => {
@@ -165,27 +214,71 @@ app.on('window-all-closed', () => {
   }
 });
 
+app.on('before-quit', () => {
+  // Force save any pending changes before quitting
+  if (autoSaveManager) {
+    autoSaveManager.forceSave();
+    autoSaveManager.stop();
+  }
+});
+
 // ============================================================
 // IPC Handlers - Authentication
 // ============================================================
 
 ipcMain.handle('auth:register', async (event, { email, password, firstName, lastName }) => {
   try {
+    // Sanitize and validate email
+    const sanitizedEmail = InputSanitizer.sanitizeEmail(email);
+    if (!InputSanitizer.isValidEmail(sanitizedEmail)) {
+      throw new Error('Invalid email format');
+    }
+
+    // Check rate limiting
+    if (registerRateLimiter.isRateLimited(sanitizedEmail)) {
+      const resetTime = registerRateLimiter.getResetTime(sanitizedEmail);
+      const minutesLeft = resetTime ? Math.ceil(resetTime / 60000) : 0;
+      throw new Error(
+        `Too many registration attempts. Please try again in ${minutesLeft} minutes.`
+      );
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(password, [
+      sanitizedEmail,
+      firstName,
+      lastName,
+    ].filter(Boolean) as string[]);
+
+    if (!passwordValidation.isValid) {
+      const feedback = passwordValidation.feedback.warning
+        ? `${passwordValidation.feedback.warning}. ${passwordValidation.feedback.suggestions.join('. ')}`
+        : passwordValidation.feedback.suggestions.join('. ');
+
+      throw new Error(`Weak password: ${feedback}`);
+    }
+
+    // Record attempt
+    registerRateLimiter.recordAttempt(sanitizedEmail);
+
     const id = generateId();
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12); // Increased rounds for better security
 
     const stmt = db.prepare(`
       INSERT INTO users (id, email, password_hash, first_name, last_name)
       VALUES (?, ?, ?, ?, ?)
     `);
 
-    stmt.run(id, email, passwordHash, firstName || null, lastName || null);
+    stmt.run(id, sanitizedEmail, passwordHash, firstName || null, lastName || null);
 
-    const token = jwt.sign({ userId: id, email }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ userId: id, email: sanitizedEmail }, JWT_SECRET, { expiresIn: '30d' });
+
+    // Clear rate limit on successful registration
+    registerRateLimiter.clear(sanitizedEmail);
 
     return {
       success: true,
-      user: { id, email, firstName, lastName },
+      user: { id, email: sanitizedEmail, firstName, lastName },
       token,
     };
   } catch (error: any) {
@@ -198,19 +291,48 @@ ipcMain.handle('auth:register', async (event, { email, password, firstName, last
 
 ipcMain.handle('auth:login', async (event, { email, password }) => {
   try {
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
+    // Sanitize and validate email
+    const sanitizedEmail = InputSanitizer.sanitizeEmail(email);
+    if (!InputSanitizer.isValidEmail(sanitizedEmail)) {
+      throw new Error('Invalid email or password');
+    }
+
+    // Check rate limiting
+    if (loginRateLimiter.isRateLimited(sanitizedEmail)) {
+      const resetTime = loginRateLimiter.getResetTime(sanitizedEmail);
+      const minutesLeft = resetTime ? Math.ceil(resetTime / 60000) : 0;
+      const remaining = loginRateLimiter.getRemainingAttempts(sanitizedEmail);
+
+      throw new Error(
+        `Too many failed login attempts. Please try again in ${minutesLeft} minutes.`
+      );
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(sanitizedEmail) as any;
 
     if (!user) {
+      loginRateLimiter.recordAttempt(sanitizedEmail);
+      // Use generic error message to prevent user enumeration
       throw new Error('Invalid email or password');
     }
 
     const isValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isValid) {
-      throw new Error('Invalid email or password');
+      loginRateLimiter.recordAttempt(sanitizedEmail);
+      const remaining = loginRateLimiter.getRemainingAttempts(sanitizedEmail);
+
+      if (remaining > 0) {
+        throw new Error(`Invalid email or password. ${remaining} attempts remaining.`);
+      } else {
+        throw new Error('Too many failed attempts. Account temporarily locked.');
+      }
     }
 
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
+
+    // Clear rate limit on successful login
+    loginRateLimiter.clear(sanitizedEmail);
 
     return {
       success: true,
@@ -249,6 +371,18 @@ ipcMain.handle('auth:verify', async (event, { token }) => {
     };
   } catch (error) {
     throw new Error('Invalid token');
+  }
+});
+
+ipcMain.handle('auth:validate-password', async (event, { password, userInputs = [] }) => {
+  try {
+    const validation = validatePasswordStrength(password, userInputs);
+    return {
+      success: true,
+      validation,
+    };
+  } catch (error) {
+    throw error;
   }
 });
 
@@ -538,6 +672,49 @@ ipcMain.handle('comments:resolve', async (event, { commentId }) => {
   } catch (error) {
     throw error;
   }
+});
+
+// ============================================================
+// IPC Handlers - PDF Export
+// ============================================================
+
+ipcMain.handle('export:with-annotations', async (event, { documentId, outputPath }) => {
+  try {
+    const result = await pdfExportService.exportDocument(documentId, {
+      includeAnnotations: true,
+      flatten: true,
+      outputPath,
+    });
+
+    return result;
+  } catch (error) {
+    throw error;
+  }
+});
+
+ipcMain.handle('export:annotations-summary', async (event, { documentId, outputPath }) => {
+  try {
+    const result = await pdfExportService.exportAnnotationsSummary(documentId, outputPath);
+    return result;
+  } catch (error) {
+    throw error;
+  }
+});
+
+ipcMain.handle('export:select-output-path', async () => {
+  const result = await dialog.showSaveDialog(mainWindow!, {
+    filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+    defaultPath: `annotated_${Date.now()}.pdf`,
+  });
+
+  if (result.canceled) {
+    return { success: false };
+  }
+
+  return {
+    success: true,
+    filePath: result.filePath,
+  };
 });
 
 // ============================================================

@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('auth:login', credentials),
     verify: (token: string) =>
       ipcRenderer.invoke('auth:verify', { token }),
+    validatePassword: (password: string, userInputs?: string[]) =>
+      ipcRenderer.invoke('auth:validate-password', { password, userInputs }),
   },
 
   // Documents
@@ -62,6 +64,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getPath: (name: 'userData' | 'documents') =>
       ipcRenderer.invoke('app:get-path', name),
   },
+
+  // Auto-save
+  autosave: {
+    forceSave: () =>
+      ipcRenderer.invoke('autosave:force-save'),
+    getStatus: () =>
+      ipcRenderer.invoke('autosave:get-status'),
+    setEnabled: (enabled: boolean) =>
+      ipcRenderer.invoke('autosave:set-enabled', { enabled }),
+    setInterval: (intervalMs: number) =>
+      ipcRenderer.invoke('autosave:set-interval', { intervalMs }),
+  },
+
+  // Export
+  export: {
+    withAnnotations: (documentId: string, outputPath?: string) =>
+      ipcRenderer.invoke('export:with-annotations', { documentId, outputPath }),
+    annotationsSummary: (documentId: string, outputPath?: string) =>
+      ipcRenderer.invoke('export:annotations-summary', { documentId, outputPath }),
+    selectOutputPath: () =>
+      ipcRenderer.invoke('export:select-output-path'),
+  },
 });
 
 // Type declaration for TypeScript
@@ -72,6 +96,7 @@ declare global {
         register: (credentials: { email: string; password: string; firstName?: string; lastName?: string }) => Promise<any>;
         login: (credentials: { email: string; password: string }) => Promise<any>;
         verify: (token: string) => Promise<any>;
+        validatePassword: (password: string, userInputs?: string[]) => Promise<any>;
       };
       documents: {
         list: (userId: string) => Promise<any>;
@@ -97,6 +122,17 @@ declare global {
       app: {
         getVersion: () => Promise<string>;
         getPath: (name: 'userData' | 'documents') => Promise<string>;
+      };
+      autosave: {
+        forceSave: () => Promise<any>;
+        getStatus: () => Promise<any>;
+        setEnabled: (enabled: boolean) => Promise<any>;
+        setInterval: (intervalMs: number) => Promise<any>;
+      };
+      export: {
+        withAnnotations: (documentId: string, outputPath?: string) => Promise<any>;
+        annotationsSummary: (documentId: string, outputPath?: string) => Promise<any>;
+        selectOutputPath: () => Promise<any>;
       };
     };
   }
