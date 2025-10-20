@@ -42,7 +42,6 @@ export interface SearchResult {
   };
 }
 
-// ...
 
   search: async (pdfDoc: pdfjsLib.PDFDocumentProxy) => {
     const { query } = get();

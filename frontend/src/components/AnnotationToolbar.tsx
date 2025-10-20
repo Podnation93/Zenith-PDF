@@ -1,9 +1,7 @@
 import {
-  // ...
   Image,
 } from '@chakra-ui/react';
 import {
-  // ...
   FiEdit,
 } from 'react-icons/fi';
 import { useSignatureStore } from '../store/signature.store';
@@ -141,16 +139,12 @@ export default function AnnotationToolbar() {
 
 import { useSignatureStore } from '../store/signature.store';
 
-// ...
 
 export default function AnnotationToolbar({ onOpenSignatureModal }) {
-  // ...
   const { signatures, deleteSignature } = useSignatureStore();
 
-  // ...
 
         {/* Sticky Note Tool */}
-        // ...
 
         <Divider orientation="vertical" h="30px" />
 
@@ -179,7 +173,6 @@ export default function AnnotationToolbar({ onOpenSignatureModal }) {
         <Divider orientation="vertical" h="30px" />
 
         {/* New Shape & Drawing Tools */}
-        // ...
 
 
         <Divider orientation="vertical" h="30px" />

@@ -20,23 +20,16 @@ export type AnnotationType =
   | 'arrow'
   | 'signature';
 
-// ...
 
 interface AnnotationState {
-  // ...
   selectedSignature: string | null; // data URL
-  // ...
 
   // Actions
   setSelectedSignature: (dataUrl: string | null) => void;
-  // ...
 }
 
 export const useAnnotationStore = create<AnnotationState>((set) => ({
-  // ...
   selectedSignature: null,
-  // ...
 
   setSelectedSignature: (dataUrl) => set({ selectedSignature: dataUrl }),
-  // ...
 }));
